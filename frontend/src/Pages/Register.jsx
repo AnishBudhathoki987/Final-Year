@@ -5,7 +5,7 @@ import { FaEnvelope, FaLock, FaUser, FaEye } from "react-icons/fa";
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    username: "",   // ✅ FIXED
+    username: "",  
     email: "",
     password: "",
     agree: false,
