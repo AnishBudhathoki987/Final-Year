@@ -5,7 +5,7 @@ import {protect} from '../MiddleWare/AuthValidation.js';
 
 const router = express.Router();
 
-//Register
+//Register ok
 router.post('/register', async (req, res)=>{
     const{username,email,password} = req.body;
     try{

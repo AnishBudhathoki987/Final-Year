@@ -19,7 +19,7 @@ const Login = ({ setUser }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); // ✅ clear old errors
+    setError(""); // ✅ clear old errors ok
 
     try {
       const res = await axios.post("/api/users/login", {
