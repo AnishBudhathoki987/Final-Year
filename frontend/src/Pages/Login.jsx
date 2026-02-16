@@ -19,7 +19,7 @@ const Login = ({ setUser }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); // ✅ clear old errors ok
+    setError("");
 
     try {
       const res = await axios.post("/api/users/login", {
@@ -27,9 +27,23 @@ const Login = ({ setUser }) => {
         password: formData.password,
       });
 
+      // ✅ Save token
       localStorage.setItem("token", res.data.token);
+
+      // ✅ Save user state
       setUser(res.data);
-      navigate("/");
+
+      // ✅ Role-based redirect
+      const role = res.data.role;
+
+      if (role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (role === "broker") {
+        navigate("/broker/dashboard");
+      } else {
+        navigate("/user/dashboard");
+      }
+
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     }
@@ -37,8 +51,6 @@ const Login = ({ setUser }) => {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] flex justify-center pt-16">
-
-      {/* MAIN CARD — SAME SIZE AS REGISTER */}
       <div className="w-[90%] max-w-4xl h-[78vh] grid grid-cols-1 md:grid-cols-2 rounded-2xl overflow-hidden shadow-2xl bg-[#141414]">
 
         {/* LEFT IMAGE */}
@@ -52,10 +64,8 @@ const Login = ({ setUser }) => {
 
         {/* RIGHT PANEL */}
         <div className="flex justify-start pt-12 bg-[#1a1a1a]">
-
           <div className="w-full max-w-xs mx-auto text-white">
 
-            {/* LOGO */}
             <h1 className="text-2xl font-bold text-center mb-2">
               <span className="text-blue-500">Car</span>Fusion
             </h1>
@@ -74,7 +84,6 @@ const Login = ({ setUser }) => {
               </p>
             )}
 
-            {/* FORM */}
             <form onSubmit={handleSubmit} className="space-y-4">
 
               {/* EMAIL */}
@@ -109,7 +118,6 @@ const Login = ({ setUser }) => {
                 />
               </div>
 
-              {/* BUTTON */}
               <button
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 transition py-2.5 rounded-lg font-semibold text-sm"
@@ -118,7 +126,6 @@ const Login = ({ setUser }) => {
               </button>
             </form>
 
-            {/* LINKS */}
             <div className="flex justify-between text-xs text-gray-400 mt-5">
               <span className="cursor-pointer hover:text-orange-400">
                 Forgot Password?
