@@ -17,7 +17,7 @@ export default function Home() {
   const navigate = useNavigate();
 
   // Search state
-  const [mode, setMode] = useState("rent"); // "rent" | "buy"
+  const [mode, setMode] = useState("rent"); 
   const [location, setLocation] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
 
