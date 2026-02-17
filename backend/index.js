@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import authRoutes from "./Routes/AuthRouter.js";
 import { connectDB } from "./Config/db.js";
+import vehicleRoutes from "./Routes/Vehicleroute.js"
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/users", authRoutes);
+app.use("/api/vehicles", vehicleRoutes); 
 
 connectDB();
 

@@ -11,24 +11,44 @@ const Navbar = ({ user, setUser }) => {
   };
 
   return (
-    <nav className="bg-gray-900 p-4 shadow-md">
-      <div className="container mx-auto flex justify-between items-center">
-
+    <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-200">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        
         {/* Logo */}
-        <Link to="/" className="text-white text-xl font-bold">
-          <span className="text-blue-500">Car</span>Fusion
+        <Link to="/" className="flex items-center gap-2">
+          <div className="w-9 h-9 flex items-center justify-center bg-blue-600/10 rounded-lg">
+            <span className="text-blue-600 text-xl">🚗</span>
+          </div>
+          <h1 className="text-slate-900 text-xl font-bold tracking-tight">
+            CarFusion
+          </h1>
         </Link>
 
-        <div className="flex items-center space-x-4">
+        {/* Middle Links */}
+        <nav className="hidden md:flex items-center gap-8">
+          <a className="text-sm font-medium text-slate-600 hover:text-blue-600 transition" href="#rent">
+            Rent
+          </a>
+          <a className="text-sm font-medium text-slate-600 hover:text-blue-600 transition" href="#buy">
+            Buy
+          </a>
+          <a className="text-sm font-medium text-slate-600 hover:text-blue-600 transition" href="#compare">
+            Compare
+          </a>
+          <a className="text-sm font-medium text-slate-600 hover:text-blue-600 transition" href="#broker">
+            Become a Broker
+          </a>
+        </nav>
 
-          {/* If Logged In */}
+        {/* Right Side */}
+        <div className="flex items-center gap-3">
           {user ? (
             <>
-              {/* Role-based Dashboard Link */}
+              {/* Role-based Dashboard */}
               {user.role === "admin" && (
                 <Link
                   to="/admin/dashboard"
-                  className="text-white hover:text-blue-400"
+                  className="text-sm font-semibold text-slate-700 hover:text-blue-600 transition"
                 >
                   Admin Dashboard
                 </Link>
@@ -37,7 +57,7 @@ const Navbar = ({ user, setUser }) => {
               {user.role === "broker" && (
                 <Link
                   to="/broker/dashboard"
-                  className="text-white hover:text-blue-400"
+                  className="text-sm font-semibold text-slate-700 hover:text-blue-600 transition"
                 >
                   Broker Dashboard
                 </Link>
@@ -46,46 +66,39 @@ const Navbar = ({ user, setUser }) => {
               {user.role === "user" && (
                 <Link
                   to="/user/dashboard"
-                  className="text-white hover:text-blue-400"
+                  className="text-sm font-semibold text-slate-700 hover:text-blue-600 transition"
                 >
                   My Dashboard
                 </Link>
               )}
 
-              {/* Show username */}
-              <span className="text-gray-300">
-                Hello, {user.username}
+              {/* Username */}
+              <span className="hidden sm:block text-sm text-slate-500">
+                Hello, <span className="font-semibold">{user.username}</span>
               </span>
 
               {/* Logout */}
               <button
                 onClick={handleLogout}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+                className="px-4 h-9 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition"
               >
                 Logout
               </button>
             </>
           ) : (
             <>
-              {/* If Not Logged In */}
+              {/* ✅ Only Login (NO Register) */}
               <Link
-                className="text-white hover:text-blue-400"
                 to="/login"
+                className="px-5 h-9 inline-flex items-center justify-center rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition shadow-sm"
               >
                 Login
-              </Link>
-
-              <Link
-                className="text-white hover:text-blue-400"
-                to="/register"
-              >
-                Register
               </Link>
             </>
           )}
         </div>
       </div>
-    </nav>
+    </header>
   );
 };
 

@@ -22,64 +22,46 @@ const Login = ({ setUser }) => {
     setError("");
 
     try {
-      const res = await axios.post("/api/users/login", {
-        email: formData.email,
-        password: formData.password,
-      });
+      const res = await axios.post("/api/users/login", formData);
 
-      // ✅ Save token
       localStorage.setItem("token", res.data.token);
-
-      // ✅ Save user state
       setUser(res.data);
 
-      // ✅ Role-based redirect
-      const role = res.data.role;
-
-      if (role === "admin") {
-        navigate("/admin/dashboard");
-      } else if (role === "broker") {
-        navigate("/broker/dashboard");
-      } else {
-        navigate("/user/dashboard");
-      }
-
+      if (res.data.role === "admin") navigate("/admin/dashboard");
+      else if (res.data.role === "broker") navigate("/broker/dashboard");
+      else navigate("/user/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] flex justify-center pt-16">
-      <div className="w-[90%] max-w-4xl h-[78vh] grid grid-cols-1 md:grid-cols-2 rounded-2xl overflow-hidden shadow-2xl bg-[#141414]">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
+      <div className="w-full max-w-5xl h-[600px] grid md:grid-cols-2 bg-white rounded-2xl shadow-xl overflow-hidden">
 
         {/* LEFT IMAGE */}
-        <div className="hidden md:flex items-center justify-center p-6">
+        <div className="hidden md:block">
           <img
             src="/car.png"
             alt="Car"
-            className="w-full object-contain"
+            className="w-full h-full object-cover"
           />
         </div>
 
         {/* RIGHT PANEL */}
-        <div className="flex justify-start pt-12 bg-[#1a1a1a]">
-          <div className="w-full max-w-xs mx-auto text-white">
+        <div className="flex items-center justify-center px-10">
+          <div className="w-full max-w-md">
 
-            <h1 className="text-2xl font-bold text-center mb-2">
-              <span className="text-blue-500">Car</span>Fusion
+            <h1 className="text-3xl font-bold text-center mb-2">
+              <span className="text-blue-600">Car</span>Fusion
             </h1>
 
-            <h2 className="text-lg font-semibold text-center mb-1 text-orange-400">
-              Hello!
-            </h2>
-
-            <p className="text-center text-gray-400 mb-5 text-sm">
+            <p className="text-center text-gray-500 mb-6">
               Sign In to Get Started
             </p>
 
             {error && (
-              <p className="bg-red-500/20 text-red-400 p-2 rounded mb-4 text-sm text-center">
+              <p className="bg-red-100 text-red-600 p-2 rounded mb-4 text-sm text-center">
                 {error}
               </p>
             )}
@@ -88,7 +70,7 @@ const Login = ({ setUser }) => {
 
               {/* EMAIL */}
               <div className="relative">
-                <FaEnvelope className="absolute top-3.5 left-4 text-gray-400 text-sm" />
+                <FaEnvelope className="absolute top-3.5 left-4 text-gray-400" />
                 <input
                   type="email"
                   name="email"
@@ -96,16 +78,16 @@ const Login = ({ setUser }) => {
                   onChange={handleChange}
                   placeholder="Email Address"
                   required
-                  className="w-full pl-11 pr-4 py-2.5 text-sm bg-transparent border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               {/* PASSWORD */}
               <div className="relative">
-                <FaLock className="absolute top-3.5 left-4 text-gray-400 text-sm" />
+                <FaLock className="absolute top-3.5 left-4 text-gray-400" />
                 <FaEye
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute top-3.5 right-4 text-gray-400 cursor-pointer text-sm"
+                  className="absolute top-3.5 right-4 text-gray-400 cursor-pointer"
                 />
                 <input
                   type={showPassword ? "text" : "password"}
@@ -114,25 +96,25 @@ const Login = ({ setUser }) => {
                   onChange={handleChange}
                   placeholder="Password"
                   required
-                  className="w-full pl-11 pr-10 py-2.5 text-sm bg-transparent border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full pl-11 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 transition py-2.5 rounded-lg font-semibold text-sm"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition"
               >
                 LOGIN
               </button>
             </form>
 
-            <div className="flex justify-between text-xs text-gray-400 mt-5">
-              <span className="cursor-pointer hover:text-orange-400">
+            <div className="flex justify-between text-sm text-gray-500 mt-5">
+              <span className="hover:text-blue-600 cursor-pointer">
                 Forgot Password?
               </span>
               <span
                 onClick={() => navigate("/register")}
-                className="cursor-pointer hover:text-orange-400"
+                className="hover:text-blue-600 cursor-pointer"
               >
                 Create Account
               </span>
