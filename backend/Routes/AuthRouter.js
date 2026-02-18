@@ -11,44 +11,68 @@ const generateToken = (id) => {
   });
 };
 
-// ✅ Register
+// ✅ Register (allow role: user or broker only)
 router.post("/register", async (req, res) => {
-  const { username, email, password } = req.body;
+  try {
+    const { username, email, password, role } = req.body;
 
-  if (!username || !email || !password)
-    return res.status(400).json({ message: "Fill all fields" });
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "Fill all fields" });
+    }
 
-  const userExists = await User.findOne({ email });
-  if (userExists)
-    return res.status(400).json({ message: "User already exists" });
+    // ✅ Allow ONLY "user" or "broker"
+    const safeRole = role === "broker" ? "broker" : "user";
 
-  const user = await User.create({ username, email, password });
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ message: "User already exists" });
+    }
 
-  res.status(201).json({
-    id: user._id,
-    username: user.username,
-    email: user.email,
-    role: user.role,
-    token: generateToken(user._id),
-  });
-});
+    const user = await User.create({
+      username,
+      email,
+      password,
+      role: safeRole,
+    });
 
-// ✅ Login
-router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  const user = await User.findOne({ email });
-
-  if (user && (await user.matchPassword(password))) {
-    res.json({
+    res.status(201).json({
       id: user._id,
       username: user.username,
       email: user.email,
       role: user.role,
       token: generateToken(user._id),
     });
-  } else {
+  } catch (error) {
+    console.log("Register error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ✅ Login
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Fill all fields" });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (user && (await user.matchPassword(password))) {
+      return res.json({
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        token: generateToken(user._id),
+      });
+    }
+
     res.status(401).json({ message: "Invalid credentials" });
+  } catch (error) {
+    console.log("Login error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

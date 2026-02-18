@@ -11,11 +11,15 @@ const router = express.Router();
  *  - location=Kathmandu
  *  - maxPrice=5000
  *  - q=keyword
+ *  - status=active|hidden (public should default to active)
  */
 router.get("/", async (req, res) => {
   try {
-    const { type, location, maxPrice, q } = req.query;
+    const { type, location, maxPrice, q, status } = req.query;
     const filter = {};
+
+    // ✅ default show only active for public
+    filter.status = status && ["active", "hidden"].includes(status) ? status : "active";
 
     if (type && ["rent", "sale"].includes(type)) filter.type = type;
     if (location) filter.location = new RegExp(location, "i");
@@ -118,14 +122,31 @@ router.post("/", protect, authorize("broker"), async (req, res) => {
  */
 router.put("/:id", protect, authorize("broker"), async (req, res) => {
   try {
-    const vehicle = await Vehicle.findById(req.params.id);
-    if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
+    const existing = await Vehicle.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Vehicle not found" });
 
-    if (vehicle.createdBy.toString() !== req.user._id.toString()) {
+    if (existing.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "You can only edit your own vehicle" });
     }
 
-    const updated = await Vehicle.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    // ✅ validate pricing rules on update too
+    const incomingType = req.body.type ?? existing.type;
+    const incomingPrice = req.body.price ?? existing.price;
+    const incomingPricePerDay = req.body.pricePerDay ?? existing.pricePerDay;
+
+    if (incomingType === "rent" && (incomingPricePerDay === null || incomingPricePerDay === undefined)) {
+      return res.status(400).json({ message: "pricePerDay is required for rent type" });
+    }
+
+    if (incomingType === "sale" && (incomingPrice === null || incomingPrice === undefined)) {
+      return res.status(400).json({ message: "price is required for sale type" });
+    }
+
+    const updated = await Vehicle.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true, // ✅ IMPORTANT
+    });
+
     res.json(updated);
   } catch (e) {
     console.log(e);

@@ -4,13 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { FaEnvelope, FaLock, FaEye } from "react-icons/fa";
 
 const Login = ({ setUser }) => {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -38,20 +35,23 @@ const Login = ({ setUser }) => {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
       <div className="w-full max-w-5xl h-[600px] grid md:grid-cols-2 bg-white rounded-2xl shadow-xl overflow-hidden">
-
         {/* LEFT IMAGE */}
         <div className="hidden md:block">
-          <img
-            src="/car.png"
-            alt="Car"
-            className="w-full h-full object-cover"
-          />
+          <img src="/car.png" alt="Car" className="w-full h-full object-cover" />
         </div>
 
         {/* RIGHT PANEL */}
-        <div className="flex items-center justify-center px-10">
-          <div className="w-full max-w-md">
+        <div className="flex items-center justify-center px-10 relative">
+          {/* ✅ Back to Home button */}
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="absolute top-6 left-6 text-sm font-semibold text-slate-600 hover:text-blue-600 transition"
+          >
+            ← Back to Home
+          </button>
 
+          <div className="w-full max-w-md">
             <h1 className="text-3xl font-bold text-center mb-2">
               <span className="text-blue-600">Car</span>Fusion
             </h1>
@@ -67,7 +67,6 @@ const Login = ({ setUser }) => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-
               {/* EMAIL */}
               <div className="relative">
                 <FaEnvelope className="absolute top-3.5 left-4 text-gray-400" />
@@ -120,6 +119,16 @@ const Login = ({ setUser }) => {
               </span>
             </div>
 
+            {/* ✅ Extra link to Home (optional) */}
+            <div className="text-center mt-6">
+              <button
+                type="button"
+                onClick={() => navigate("/")}
+                className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition"
+              >
+                Continue browsing without login →
+              </button>
+            </div>
           </div>
         </div>
       </div>
