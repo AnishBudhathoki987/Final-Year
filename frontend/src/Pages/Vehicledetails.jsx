@@ -1,3 +1,4 @@
+// src/Pages/VehicleDetails.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
@@ -20,7 +21,7 @@ export default function VehicleDetails({ user }) {
   const { id } = useParams();
   const location = useLocation();
 
-  // ✅ If Vehicles.jsx navigates with state, this will work
+  // If navigated with state
   const stateVehicle = location.state?.vehicle || null;
 
   const [vehicle, setVehicle] = useState(stateVehicle);
@@ -30,163 +31,19 @@ export default function VehicleDetails({ user }) {
   const [selectedImg, setSelectedImg] = useState(0);
   const [saved, setSaved] = useState(false);
 
-  // ✅ SAME demo list (so demo details page works even without backend)
-  const demoVehicles = useMemo(
-    () => [
-      {
-        _id: "demo1",
-        type: "rent",
-        title: "Toyota Prado 2018",
-        location: "Kathmandu, Nepal",
-        fuelType: "Diesel",
-        transmission: "Automatic",
-        seats: 7,
-        mileage: 45000,
-        pricePerDay: 25000,
-        category: "SUV",
-        description:
-          "This 2018 Toyota Prado is perfect for city rides and long-distance mountain trips in Nepal.",
-        image:
-          "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?q=80&w=2000&auto=format&fit=crop",
-        images: [
-          "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?q=80&w=2000&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=2000&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1550355291-bbee04a92027?q=80&w=2000&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2000&auto=format&fit=crop",
-        ],
-      },
-      {
-        _id: "demo2",
-        type: "sale",
-        title: "Hyundai Creta 2021",
-        location: "Pokhara, Nepal",
-        fuelType: "Petrol",
-        transmission: "Manual",
-        seats: 5,
-        mileage: 22000,
-        price: 4500000,
-        category: "SUV",
-        description: "Well maintained Hyundai Creta for sale. Great condition.",
-        image:
-          "https://images.unsplash.com/photo-1605559424843-9e61a7b5b4b2?q=80&w=2000&auto=format&fit=crop",
-        images: [
-          "https://images.unsplash.com/photo-1605559424843-9e61a7b5b4b2?q=80&w=2000&auto=format&fit=crop",
-        ],
-      },
-      {
-        _id: "demo3",
-        type: "sale",
-        title: "Kia Sportage 2020",
-        location: "Lalitpur, Nepal",
-        fuelType: "Diesel",
-        transmission: "Automatic",
-        seats: 5,
-        mileage: 30000,
-        price: 6200000,
-        category: "SUV",
-        description: "Powerful and reliable SUV. Perfect for family.",
-        image:
-          "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2000&auto=format&fit=crop",
-        images: [
-          "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2000&auto=format&fit=crop",
-        ],
-      },
-      {
-        _id: "demo4",
-        type: "rent",
-        title: "Honda City 2022",
-        location: "Bhaktapur, Nepal",
-        fuelType: "Petrol",
-        transmission: "CVT",
-        seats: 5,
-        mileage: 12000,
-        pricePerDay: 12000,
-        category: "Sedan",
-        description: "Smooth sedan for rent. Great for city travel.",
-        image:
-          "https://images.unsplash.com/photo-1550355291-bbee04a92027?q=80&w=2000&auto=format&fit=crop",
-        images: [
-          "https://images.unsplash.com/photo-1550355291-bbee04a92027?q=80&w=2000&auto=format&fit=crop",
-        ],
-      },
-      {
-        _id: "demo5",
-        type: "sale",
-        title: "Ford Ranger 2019",
-        location: "Chitwan, Nepal",
-        fuelType: "Diesel",
-        transmission: "Auto",
-        seats: 5,
-        mileage: 40000,
-        price: 8500000,
-        category: "Pickup",
-        description: "Strong pickup truck for sale. Off-road ready.",
-        image:
-          "https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=2000&auto=format&fit=crop",
-        images: [
-          "https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=2000&auto=format&fit=crop",
-        ],
-      },
-      {
-        _id: "demo6",
-        type: "rent",
-        title: "BYD Atto 3",
-        location: "Kathmandu, Nepal",
-        fuelType: "Electric",
-        transmission: "Auto",
-        seats: 5,
-        mileage: 8000,
-        pricePerDay: 18000,
-        category: "EV",
-        description: "Electric SUV for rent. Clean and modern ride.",
-        image:
-          "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2400&auto=format&fit=crop",
-        images: [
-          "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2400&auto=format&fit=crop",
-        ],
-      },
-    ],
-    []
-  );
-
-  // ✅ Demo broker card (UI only)
-  const broker = useMemo(
-    () => ({
-      name: "Kushal Shrestha",
-      verified: true,
-      rating: 4.9,
-      carsSold: 128,
-      experience: "5 Years",
-      avatar:
-        "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=800&auto=format&fit=crop",
-    }),
-    []
-  );
-
+  // ✅ ALWAYS fetch by id (to get populated createdBy), but keep UI instant if state exists
   useEffect(() => {
-    // 1) If state vehicle exists, use it
     if (stateVehicle) {
       setVehicle(stateVehicle);
       setLoading(false);
-      return;
     }
 
-    // 2) If demo id, load from demo list
-    const demoHit = demoVehicles.find((d) => d._id === id);
-    if (demoHit) {
-      setVehicle(demoHit);
-      setLoading(false);
-      return;
-    }
-
-    // 3) Otherwise fetch from backend
     const fetchById = async () => {
-      setLoading(true);
       setError("");
       try {
         const res = await axios.get(`/api/vehicles/${id}`);
         const v = res.data?.vehicle ?? res.data;
-        setVehicle(v);
+        setVehicle(v); // overwrite with full populated version
       } catch {
         setVehicle(null);
         setError("Vehicle not found. Invalid id or listing removed.");
@@ -196,7 +53,7 @@ export default function VehicleDetails({ user }) {
     };
 
     fetchById();
-  }, [id, stateVehicle, demoVehicles]);
+  }, [id, stateVehicle]);
 
   useEffect(() => setSelectedImg(0), [vehicle?._id]);
 
@@ -229,6 +86,17 @@ export default function VehicleDetails({ user }) {
   };
 
   const onCall = () => alert("Call clicked! (connect to broker contact later)");
+
+  // ✅ Strong broker name resolver
+  const brokerObj = vehicle?.createdBy || {};
+  const ownerName =
+    brokerObj.name ||
+    brokerObj.fullName ||
+    brokerObj.username ||
+    [brokerObj.firstName, brokerObj.lastName].filter(Boolean).join(" ") ||
+    "Broker";
+
+  const ownerEmail = brokerObj.email || "";
 
   if (loading) {
     return (
@@ -274,7 +142,11 @@ export default function VehicleDetails({ user }) {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* breadcrumb */}
         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-          <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 hover:text-slate-700" type="button">
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 hover:text-slate-700"
+            type="button"
+          >
             <FaArrowLeft /> Back to Browse
           </button>
           <span>/</span>
@@ -398,33 +270,23 @@ export default function VehicleDetails({ user }) {
               </button>
             </div>
 
+            {/* LISTED BY */}
             <div className="mt-6 border-t border-slate-100 pt-6">
-              <div className="flex items-center justify-between gap-4">
+              <p className="text-xs font-bold text-slate-400">LISTED BY</p>
+
+              <div className="mt-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <img src={broker.avatar} alt={broker.name} className="h-12 w-12 rounded-full object-cover" />
+                  <div className="h-12 w-12 rounded-full bg-slate-100 grid place-items-center font-extrabold text-slate-700">
+                    {(ownerName || "B").slice(0, 1).toUpperCase()}
+                  </div>
                   <div>
-                    <p className="text-sm font-extrabold text-slate-900">{broker.name}</p>
+                    <p className="text-sm font-extrabold text-slate-900">{ownerName}</p>
                     <p className="text-xs text-slate-500 flex items-center gap-1">
-                      {broker.verified ? (
-                        <>
-                          <FaCheckCircle className="text-emerald-500" /> Verified Broker
-                        </>
-                      ) : (
-                        "Broker"
-                      )}
+                      <FaCheckCircle className="text-emerald-500" /> Verified Broker
                     </p>
+                    {ownerEmail ? <p className="text-xs text-slate-400">{ownerEmail}</p> : null}
                   </div>
                 </div>
-
-                <div className="text-right">
-                  <p className="text-xs text-slate-500">Rating</p>
-                  <p className="text-sm font-extrabold text-slate-900">⭐ {broker.rating}</p>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <MiniStat label="CARS SOLD" value={broker.carsSold} />
-                <MiniStat label="EXPERIENCE" value={broker.experience} />
               </div>
             </div>
 
@@ -447,15 +309,6 @@ function Spec({ icon, label, value }) {
         {icon}
       </div>
       <p className="mt-4 text-xs font-semibold text-slate-500">{label}</p>
-      <p className="mt-1 text-sm font-extrabold text-slate-900">{value}</p>
-    </div>
-  );
-}
-
-function MiniStat({ label, value }) {
-  return (
-    <div className="rounded-3xl bg-[#f6f7fb] border border-slate-100 p-4 text-center">
-      <p className="text-[10px] font-extrabold tracking-wider text-slate-500">{label}</p>
       <p className="mt-1 text-sm font-extrabold text-slate-900">{value}</p>
     </div>
   );

@@ -16,13 +16,18 @@ import Register from "./Pages/Register";
 import Unauthorized from "./Pages/Unauthorized";
 import Vehicles from "./Pages/Vehicles";
 import VehicleDetails from "./Pages/VehicleDetails"
+import BrokerDashboard from "./Pages/BrokerDashboard";
+import AddVehicle from "./Pages/AddVehicle";
 
 
 function Layout({ user, setUser }) {
   const location = useLocation();
 
-  // Hide navbar on login & register
-  const hideNavbar = ["/login", "/register"].includes(location.pathname);
+  // Hide navbar on login & register and brokerdashboard
+  const hideNavbar =
+  ["/login", "/register"].includes(location.pathname) ||
+  location.pathname.startsWith("/broker") ||
+  location.pathname.startsWith("/admin");
   
 
   return (
@@ -38,6 +43,10 @@ function Layout({ user, setUser }) {
         {/* Vehicle pages */}
         <Route path="/vehicles" element={<Vehicles user={user} />} />
         <Route path="/vehicles/:id" element={<VehicleDetails user={user} />} />
+
+        {/*Broker dashboard*/}
+        <Route path="/broker/dashboard" element={<BrokerDashboard user={user} setUser={setUser} />} />
+        <Route path="/broker/add-vehicle" element={<AddVehicle user={user} />} />
       </Routes>
     </>
   );

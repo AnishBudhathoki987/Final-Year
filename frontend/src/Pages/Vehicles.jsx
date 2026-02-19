@@ -1,27 +1,20 @@
-// src/Pages/Vehicles.jsx
+// src/Pages/Vehicles.jsx  ✅ Demo data REMOVED (all other logic kept same)
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
-import {
-  FaSearch,
-  FaMapMarkerAlt,
-  FaGasPump,
-  FaCogs,
-  FaUsers,
-  FaHeart,
-} from "react-icons/fa";
+import { FaSearch, FaMapMarkerAlt, FaGasPump, FaCogs, FaUsers, FaHeart } from "react-icons/fa";
 
-export default function Vehicles() {
+export default function Vehicles({ user }) {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
 
   // ✅ Backend uses: type = "rent" | "sale"
-  const initialType = params.get("type") || "rent"; // rent | sale
-  const initialQ = params.get("q") || "";
+  const initialType = params.get("type") || "rent";
+  const initialQ = params.get("search") || ""; // ✅ match backend
   const initialCategory = params.get("category") || "All Types";
   const initialLocation = params.get("location") || "";
   const initialMaxPrice = Number(params.get("maxPrice") || 10000000);
-  const initialSort = params.get("sort") || "recommended"; // recommended | newest | priceLow | priceHigh
+  const initialSort = params.get("sort") || "recommended";
 
   const [listingType, setListingType] = useState(initialType);
   const [q, setQ] = useState(initialQ);
@@ -35,141 +28,10 @@ export default function Vehicles() {
   const [vehicles, setVehicles] = useState([]);
   const [favorites, setFavorites] = useState(() => new Set());
 
-  // ✅ demo data shown if backend has none yet
-  const demoVehicles = useMemo(
-    () => [
-      {
-        _id: "demo1",
-        type: "rent",
-        title: "Toyota Prado 2018",
-        location: "Kathmandu, Nepal",
-        fuelType: "Diesel",
-        transmission: "Automatic",
-        seats: 7,
-        pricePerDay: 25000,
-        image:
-          "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?q=80&w=2000&auto=format&fit=crop",
-      },
-      {
-        _id: "demo2",
-        type: "sale",
-        title: "Hyundai Creta 2021",
-        location: "Pokhara, Nepal",
-        fuelType: "Petrol",
-        transmission: "Manual",
-        seats: 5,
-        price: 4500000,
-        image:
-          "https://images.unsplash.com/photo-1605559424843-9e61a7b5b4b2?q=80&w=2000&auto=format&fit=crop",
-      },
-      {
-        _id: "demo3",
-        type: "sale",
-        title: "Kia Sportage 2020",
-        location: "Lalitpur, Nepal",
-        fuelType: "Diesel",
-        transmission: "Automatic",
-        seats: 5,
-        price: 6200000,
-        image:
-          "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2000&auto=format&fit=crop",
-      },
-      {
-        _id: "demo4",
-        type: "rent",
-        title: "Honda City 2022",
-        location: "Bhaktapur, Nepal",
-        fuelType: "Petrol",
-        transmission: "CVT",
-        seats: 5,
-        pricePerDay: 12000,
-        image:
-          "https://images.unsplash.com/photo-1550355291-bbee04a92027?q=80&w=2000&auto=format&fit=crop",
-      },
-      {
-        _id: "demo5",
-        type: "sale",
-        title: "Ford Ranger 2019",
-        location: "Chitwan, Nepal",
-        fuelType: "Diesel",
-        transmission: "Auto",
-        seats: 5,
-        price: 8500000,
-        image:
-          "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2200&auto=format&fit=crop",
-      },
-      {
-        _id: "demo6",
-        type: "rent",
-        title: "BYD Atto 3",
-        location: "Kathmandu, Nepal",
-        fuelType: "Electric",
-        transmission: "Auto",
-        seats: 5,
-        pricePerDay: 18000,
-        image:
-          "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2400&auto=format&fit=crop",
-      },
-    ],
-    []
-  );
-
-  const applyFilters = () => {
-    const next = new URLSearchParams();
-
-    next.set("type", listingType);
-    if (q.trim()) next.set("q", q.trim());
-    if (category !== "All Types") next.set("category", category);
-    if (location.trim()) next.set("location", location.trim());
-    next.set("maxPrice", String(maxPrice));
-    next.set("available", String(availableNow));
-    next.set("sort", sort);
-
-    setParams(next);
-    fetchVehicles(next);
+  const formatNPR = (n) => {
+    if (n === null || n === undefined) return "—";
+    return `NPR ${Number(n).toLocaleString("en-US")}`;
   };
-
-  const fetchVehicles = async (sp = params) => {
-    setLoading(true);
-
-    try {
-      // ✅ Adjust to your backend query keys
-      // We send: type, q, category, location, maxPrice, sort
-      const res = await axios.get(`/api/vehicles?${sp.toString()}`);
-
-      // Accept both {vehicles: []} OR [] response
-      const list = Array.isArray(res.data) ? res.data : res.data?.vehicles || [];
-
-      setVehicles(list);
-    } catch (err) {
-      console.log("Vehicles fetch failed:", err);
-      setVehicles([]); // fallback will show
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // initial load
-  useEffect(() => {
-    fetchVehicles(params);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // use demo if backend empty
-  const visibleList = useMemo(() => {
-    const source = vehicles.length > 0 ? vehicles : demoVehicles;
-
-    // frontend local filtering (so UI works even if backend doesn't support filters yet)
-    return source
-      .filter((v) => (listingType ? v.type === listingType : true))
-      .filter((v) => (q.trim() ? (v.title || "").toLowerCase().includes(q.trim().toLowerCase()) : true))
-      .filter((v) => (category === "All Types" ? true : (v.category || "").toLowerCase() === category.toLowerCase()))
-      .filter((v) => (location.trim() ? (v.location || "").toLowerCase().includes(location.trim().toLowerCase()) : true))
-      .filter((v) => {
-        const priceValue = v.type === "rent" ? Number(v.pricePerDay || 0) : Number(v.price || 0);
-        return priceValue <= maxPrice;
-      });
-  }, [vehicles, demoVehicles, listingType, q, category, location, maxPrice]);
 
   const toggleFav = (id) => {
     setFavorites((prev) => {
@@ -180,30 +42,107 @@ export default function Vehicles() {
     });
   };
 
-  const formatNPR = (n) => {
-    if (!n && n !== 0) return "—";
-    return `NPR ${Number(n).toLocaleString("en-US")}`;
+  const fetchVehicles = async (sp = params) => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`/api/vehicles?${sp.toString()}`);
+      const list = Array.isArray(res.data) ? res.data : res.data?.vehicles || [];
+      setVehicles(list);
+    } catch (err) {
+      console.log("Vehicles fetch failed:", err);
+      setVehicles([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyFilters = () => {
+    const next = new URLSearchParams();
+
+    next.set("type", listingType);
+
+    if (q.trim()) next.set("search", q.trim()); // ✅ match backend key
+    if (category !== "All Types") next.set("category", category);
+    if (location.trim()) next.set("location", location.trim());
+
+    // ✅ maxPrice only (backend supports maxPrice)
+    next.set("maxPrice", String(maxPrice));
+    next.set("available", String(availableNow));
+
+    // ✅ map recommended to newest (backend supports newest/priceLow/priceHigh)
+    const safeSort = sort === "recommended" ? "newest" : sort;
+    next.set("sort", safeSort);
+
+    setParams(next);
+    fetchVehicles(next);
+  };
+
+  // initial load
+  useEffect(() => {
+    fetchVehicles(params);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ✅ Demo removed: show ONLY real vehicles from backend
+  const visibleList = useMemo(() => {
+    return vehicles
+      .filter((v) => (listingType ? v.type === listingType : true))
+      .filter((v) =>
+        q.trim() ? (v.title || "").toLowerCase().includes(q.trim().toLowerCase()) : true
+      )
+      .filter((v) =>
+        category === "All Types"
+          ? true
+          : (v.category || "").toLowerCase() === category.toLowerCase()
+      )
+      .filter((v) =>
+        location.trim()
+          ? (v.location || "").toLowerCase().includes(location.trim().toLowerCase())
+          : true
+      )
+      .filter((v) => {
+        const priceValue = v.type === "rent" ? Number(v.pricePerDay || 0) : Number(v.price || 0);
+        return priceValue <= maxPrice;
+      });
+  }, [vehicles, listingType, q, category, location, maxPrice]);
+
+  // Nice slider fill
+  const sliderMax = 10000000;
+  const sliderPct = Math.max(0, Math.min(100, (maxPrice / sliderMax) * 100));
+
+  const clearFilters = () => {
+    setListingType("rent");
+    setQ("");
+    setCategory("All Types");
+    setLocation("");
+    setMaxPrice(10000000);
+    setAvailableNow(false);
+    setSort("recommended");
+
+    const next = new URLSearchParams();
+    next.set("type", "rent");
+    next.set("maxPrice", String(10000000));
+    next.set("available", "false");
+    next.set("sort", "newest"); // backend safe
+    setParams(next);
+    fetchVehicles(next);
   };
 
   return (
     <div className="bg-[#f6f7fb] min-h-screen">
       <div className="max-w-6xl mx-auto px-4 pt-10 pb-14">
         {/* Header row */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900">
-              Browse Vehicles
-            </h1>
-            <p className="mt-2 text-slate-500">
-              Find the perfect car for your journey.
-            </p>
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900">Browse Vehicles</h1>
+            <p className="mt-2 text-slate-500">Find the perfect car for your journey.</p>
           </div>
 
-          <div className="min-w-[220px]">
+          <div className="w-full sm:w-[260px]">
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100"
             >
               <option value="recommended">Recommended</option>
               <option value="newest">Newest</option>
@@ -213,102 +152,131 @@ export default function Vehicles() {
           </div>
         </div>
 
-        {/* Filter bar card (second design style) */}
-        <div className="mt-10 rounded-[28px] bg-white shadow-[0_30px_90px_rgba(0,0,0,0.08)] border border-slate-100 p-5">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-            {/* search */}
-            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 flex-1">
-              <FaSearch className="text-slate-400" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search make, model..."
-                className="w-full outline-none text-sm text-slate-700 placeholder:text-slate-400"
-              />
-            </div>
-
-            {/* Rent / Buy toggle */}
-            <div className="inline-flex rounded-2xl bg-slate-100 p-1">
-              <button
-                onClick={() => setListingType("rent")}
-                className={`px-6 py-2 rounded-2xl text-sm font-bold transition ${
-                  listingType === "rent" ? "bg-white text-blue-600 shadow" : "text-slate-600"
-                }`}
-              >
-                Rent
-              </button>
-              <button
-                onClick={() => setListingType("sale")}
-                className={`px-6 py-2 rounded-2xl text-sm font-bold transition ${
-                  listingType === "sale" ? "bg-white text-blue-600 shadow" : "text-slate-600"
-                }`}
-              >
-                Buy
-              </button>
-            </div>
-
-            {/* Type/category */}
-            <div className="min-w-[220px]">
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none"
-              >
-                <option>All Types</option>
-                <option>SUV</option>
-                <option>Sedan</option>
-                <option>Hatchback</option>
-                <option>Pickup</option>
-                <option>EV</option>
-              </select>
-            </div>
-
-            {/* Location */}
-            <div className="min-w-[240px] flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <FaMapMarkerAlt className="text-slate-400" />
-              <input
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Location"
-                className="w-full outline-none text-sm text-slate-700 placeholder:text-slate-400"
-              />
-            </div>
-
-            {/* Price slider */}
-            <div className="flex-1 min-w-[280px]">
-              <div className="flex items-center justify-between text-sm font-semibold text-slate-600">
-                <span>Max Price</span>
-                <span className="text-slate-500">{formatNPR(maxPrice)}</span>
+        {/* Filter bar */}
+        <div className="mt-10">
+          <div className="rounded-[36px] bg-white border border-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.08)] p-4 sm:p-5">
+            <div className="flex flex-col xl:flex-row xl:items-center gap-4">
+              {/* Search pill */}
+              <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3.5 flex-1 min-w-[220px]">
+                <div className="h-9 w-9 rounded-2xl bg-slate-100 grid place-items-center">
+                  <FaSearch className="text-slate-400" />
+                </div>
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search vehicles (make, model...)"
+                  className="w-full outline-none text-sm text-slate-700 placeholder:text-slate-400"
+                />
               </div>
-              <input
-                type="range"
-                min={0}
-                max={10000000}
-                step={50000}
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
-                className="w-full mt-2"
-              />
+
+              {/* Rent/Buy toggle pill */}
+              <div className="inline-flex rounded-3xl bg-slate-100 p-1.5 self-start xl:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setListingType("rent")}
+                  className={`px-7 py-2.5 rounded-3xl text-sm font-extrabold transition ${
+                    listingType === "rent"
+                      ? "bg-white text-blue-600 shadow-[0_10px_25px_rgba(0,0,0,0.08)]"
+                      : "text-slate-600 hover:text-slate-800"
+                  }`}
+                >
+                  Rent
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setListingType("sale")}
+                  className={`px-7 py-2.5 rounded-3xl text-sm font-extrabold transition ${
+                    listingType === "sale"
+                      ? "bg-white text-blue-600 shadow-[0_10px_25px_rgba(0,0,0,0.08)]"
+                      : "text-slate-600 hover:text-slate-800"
+                  }`}
+                >
+                  Buy
+                </button>
+              </div>
+
+              {/* Category pill */}
+              <div className="min-w-[210px]">
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100"
+                >
+                  <option>All Types</option>
+                  <option>SUV</option>
+                  <option>Sedan</option>
+                  <option>Hatchback</option>
+                  <option>Pickup</option>
+                  <option>EV</option>
+                </select>
+              </div>
+
+              {/* Location pill */}
+              <div className="min-w-[260px] flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3.5">
+                <div className="h-9 w-9 rounded-2xl bg-slate-100 grid place-items-center">
+                  <FaMapMarkerAlt className="text-slate-400" />
+                </div>
+                <input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Location"
+                  className="w-full outline-none text-sm text-slate-700 placeholder:text-slate-400"
+                />
+              </div>
+
+              {/* Max price slider */}
+              <div className="flex-1 min-w-[280px]">
+                <div className="flex items-center justify-between text-sm font-extrabold text-slate-700">
+                  <span>Max Price</span>
+                  <span className="text-slate-600">{formatNPR(maxPrice)}</span>
+                </div>
+
+                <div className="mt-3">
+                  <input
+                    type="range"
+                    min={0}
+                    max={sliderMax}
+                    step={50000}
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(Number(e.target.value))}
+                    className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                    style={{
+                      background: `linear-gradient(to right, #2563eb ${sliderPct}%, #e2e8f0 ${sliderPct}%)`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Available now */}
+              <label className="flex items-center gap-2 text-sm font-extrabold text-slate-700 whitespace-nowrap px-2">
+                <input
+                  type="checkbox"
+                  checked={availableNow}
+                  onChange={(e) => setAvailableNow(e.target.checked)}
+                  className="h-4 w-4 accent-blue-600"
+                />
+                Available Now
+              </label>
+
+              {/* Buttons */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={clearFilters}
+                  type="button"
+                  className="rounded-3xl border border-slate-200 bg-white px-5 py-3 text-sm font-extrabold text-slate-700 hover:bg-slate-50 transition"
+                >
+                  Clear
+                </button>
+
+                <button
+                  onClick={applyFilters}
+                  type="button"
+                  className="rounded-3xl bg-blue-600 px-7 py-3 text-sm font-extrabold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 transition whitespace-nowrap"
+                >
+                  Apply Filters
+                </button>
+              </div>
             </div>
-
-            {/* Available now */}
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 whitespace-nowrap">
-              <input
-                type="checkbox"
-                checked={availableNow}
-                onChange={(e) => setAvailableNow(e.target.checked)}
-                className="h-4 w-4 accent-blue-600"
-              />
-              Available Now
-            </label>
-
-            {/* Apply */}
-            <button
-              onClick={applyFilters}
-              className="rounded-2xl bg-blue-600 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 transition whitespace-nowrap"
-            >
-              Apply Filters
-            </button>
           </div>
         </div>
 
@@ -319,17 +287,13 @@ export default function Vehicles() {
           ) : visibleList.length === 0 ? (
             <div className="rounded-[28px] bg-white border border-slate-100 p-14 text-center shadow-[0_30px_90px_rgba(0,0,0,0.06)]">
               <h3 className="text-2xl font-extrabold text-slate-900">No vehicles found</h3>
-              <p className="mt-2 text-slate-500">Try changing filters or search keyword.</p>
+              <p className="mt-2 text-slate-500">Add a listing from Broker Dashboard or change filters.</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {visibleList.map((v) => {
-                const badge =
-                  v.type === "rent" ? "FOR RENT" : "FOR SALE";
-                const badgeCls =
-                  v.type === "rent"
-                    ? "bg-blue-600"
-                    : "bg-emerald-500";
+                const badge = v.type === "rent" ? "FOR RENT" : "FOR SALE";
+                const badgeCls = v.type === "rent" ? "bg-blue-600" : "bg-emerald-500";
 
                 return (
                   <div
@@ -338,12 +302,18 @@ export default function Vehicles() {
                   >
                     <div className="relative h-52">
                       <img
-                        src={v.image || (v.images?.[0] ?? "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2000&auto=format&fit=crop")}
+                        src={
+                          v.image ||
+                          v.images?.[0] ||
+                          "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2000&auto=format&fit=crop"
+                        }
                         alt={v.title}
                         className="h-full w-full object-cover"
                       />
 
-                      <div className={`absolute top-4 left-4 ${badgeCls} text-white text-xs font-extrabold px-3 py-1.5 rounded-full`}>
+                      <div
+                        className={`absolute top-4 left-4 ${badgeCls} text-white text-xs font-extrabold px-3 py-1.5 rounded-full`}
+                      >
                         {badge}
                       </div>
 
@@ -392,8 +362,9 @@ export default function Vehicles() {
                         </div>
 
                         <button
-                          onClick={() => navigate(`/vehicles/${v._id}`)}
+                          onClick={() => navigate(`/vehicles/${v._id}`, { state: { vehicle: v } })}
                           className="rounded-2xl bg-blue-50 text-blue-700 px-5 py-2.5 text-sm font-bold hover:bg-blue-100 transition"
+                          type="button"
                         >
                           View Details
                         </button>
@@ -405,13 +376,17 @@ export default function Vehicles() {
             </div>
           )}
 
-          {/* Pagination UI placeholder (same look) */}
+          {/* Pagination UI placeholder */}
           <div className="mt-12 flex items-center justify-center gap-4 text-sm text-slate-500">
-            <button className="hover:text-slate-700">← Previous</button>
+            <button className="hover:text-slate-700" type="button">
+              ← Previous
+            </button>
             <div className="h-12 w-12 rounded-full bg-blue-600 text-white grid place-items-center font-bold shadow-lg shadow-blue-600/25">
               1
             </div>
-            <button className="hover:text-slate-700">Next →</button>
+            <button className="hover:text-slate-700" type="button">
+              Next →
+            </button>
           </div>
         </div>
       </div>

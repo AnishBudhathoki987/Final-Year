@@ -1,3 +1,4 @@
+// Routes/Vehicleroute.js
 import express from "express";
 import Vehicle from "../Models/Vehicle.js";
 import { protect, authorize } from "../MiddleWare/AuthValidation.js";
@@ -8,40 +9,28 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const {
-      type,          // rent | sale
-      search,        // keyword
-      location,      // location text
-      category,      // SUV etc.
+      type, // rent | sale
+      search, // keyword
+      location, // location text
+      category, // SUV etc.
       minPrice,
       maxPrice,
       page = 1,
       limit = 6,
       sort = "newest", // newest | priceLow | priceHigh
-      available,       // true/false
+      available, // true/false
     } = req.query;
 
     const filter = { status: "active" };
 
-    // ✅ type filter
-    if (type && ["rent", "sale"].includes(type)) {
-      filter.type = type;
-    }
+    if (type && ["rent", "sale"].includes(type)) filter.type = type;
 
-    // location filter
-    if (location) {
-      filter.location = { $regex: location, $options: "i" };
-    }
+    if (location) filter.location = { $regex: location, $options: "i" };
+    if (category) filter.category = { $regex: category, $options: "i" };
 
-    // category filter
-    if (category) {
-      filter.category = { $regex: category, $options: "i" };
-    }
-
-    // available filter
     if (available === "true") filter.isAvailable = true;
     if (available === "false") filter.isAvailable = false;
 
-    // search (text index if you want)
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: "i" } },
@@ -50,7 +39,6 @@ router.get("/", async (req, res) => {
       ];
     }
 
-    // price filter (depends on type)
     const min = minPrice ? Number(minPrice) : null;
     const max = maxPrice ? Number(maxPrice) : null;
 
@@ -61,14 +49,9 @@ router.get("/", async (req, res) => {
       if (max !== null) filter[field].$lte = max;
     }
 
-    // sorting
     let sortObj = { createdAt: -1 };
-    if (sort === "priceLow") {
-      sortObj = type === "rent" ? { pricePerDay: 1 } : { price: 1 };
-    }
-    if (sort === "priceHigh") {
-      sortObj = type === "rent" ? { pricePerDay: -1 } : { price: -1 };
-    }
+    if (sort === "priceLow") sortObj = type === "rent" ? { pricePerDay: 1 } : { price: 1 };
+    if (sort === "priceHigh") sortObj = type === "rent" ? { pricePerDay: -1 } : { price: -1 };
 
     const pageNum = Number(page);
     const limitNum = Number(limit);
@@ -91,11 +74,33 @@ router.get("/", async (req, res) => {
   }
 });
 
+/**
+ * ✅ NEW: GET /api/vehicles/mine (BROKER ONLY)
+ * Returns vehicles created by the logged-in broker (active + hidden)
+ */
+router.get("/mine", protect, authorize("broker"), async (req, res) => {
+  try {
+    const vehicles = await Vehicle.find({ createdBy: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate("createdBy", "name username email role");
+
+    res.json({ vehicles });
+  } catch (error) {
+    console.log("GET mine vehicles error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // ✅ GET /api/vehicles/:id (PUBLIC)
 router.get("/:id", async (req, res) => {
   try {
-    const v = await Vehicle.findById(req.params.id).populate("createdBy", "username email role");
+    const v = await Vehicle.findById(req.params.id).populate(
+      "createdBy",
+      "name username email role"
+    );
+
     if (!v) return res.status(404).json({ message: "Vehicle not found" });
+
     res.json(v);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
@@ -107,7 +112,6 @@ router.post("/", protect, authorize("broker"), async (req, res) => {
   try {
     const data = req.body;
 
-    // basic validation
     if (!data.title || !data.type || !data.location) {
       return res.status(400).json({ message: "title, type, location are required" });
     }
@@ -116,10 +120,10 @@ router.post("/", protect, authorize("broker"), async (req, res) => {
       return res.status(400).json({ message: "type must be rent or sale" });
     }
 
-    // ensure pricing rules
     if (data.type === "rent" && (data.pricePerDay === undefined || data.pricePerDay === null)) {
       return res.status(400).json({ message: "pricePerDay is required for rent type" });
     }
+
     if (data.type === "sale" && (data.price === undefined || data.price === null)) {
       return res.status(400).json({ message: "price is required for sale type" });
     }
@@ -142,7 +146,6 @@ router.put("/:id", protect, authorize("broker"), async (req, res) => {
     const v = await Vehicle.findById(req.params.id);
     if (!v) return res.status(404).json({ message: "Vehicle not found" });
 
-    // only owner can update
     if (String(v.createdBy) !== String(req.user._id)) {
       return res.status(403).json({ message: "Access denied" });
     }

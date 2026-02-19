@@ -1,9 +1,12 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import path from "path";
+
 import authRoutes from "./Routes/AuthRouter.js";
 import { connectDB } from "./Config/db.js";
-import vehicleRoutes from "./Routes/Vehicleroute.js"
+import vehicleRoutes from "./Routes/Vehicleroute.js";
+import uploadRoutes from "./Routes/UploadRoute.js";
 
 dotenv.config();
 
@@ -22,8 +25,14 @@ app.get("/", (req, res) => {
   res.send("Server is running!");
 });
 
+// ✅ serve uploaded images
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
 app.use("/api/users", authRoutes);
-app.use("/api/vehicles", vehicleRoutes); 
+app.use("/api/vehicles", vehicleRoutes);
+
+// ✅ image upload endpoint
+app.use("/api/upload", uploadRoutes);
 
 connectDB();
 
