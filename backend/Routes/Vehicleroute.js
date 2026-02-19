@@ -1,107 +1,126 @@
 import express from "express";
-import Vehicle from "../Models/vehicle.js";
+import Vehicle from "../Models/Vehicle.js";
 import { protect, authorize } from "../MiddleWare/AuthValidation.js";
 
 const router = express.Router();
 
-/**
- * PUBLIC: GET /api/vehicles
- * Filters:
- *  - type=rent|sale
- *  - location=Kathmandu
- *  - maxPrice=5000
- *  - q=keyword
- *  - status=active|hidden (public should default to active)
- */
+// ✅ GET /api/vehicles (PUBLIC) with filters + pagination
 router.get("/", async (req, res) => {
   try {
-    const { type, location, maxPrice, q, status } = req.query;
-    const filter = {};
+    const {
+      type,          // rent | sale
+      search,        // keyword
+      location,      // location text
+      category,      // SUV etc.
+      minPrice,
+      maxPrice,
+      page = 1,
+      limit = 6,
+      sort = "newest", // newest | priceLow | priceHigh
+      available,       // true/false
+    } = req.query;
 
-    // ✅ default show only active for public
-    filter.status = status && ["active", "hidden"].includes(status) ? status : "active";
+    const filter = { status: "active" };
 
-    if (type && ["rent", "sale"].includes(type)) filter.type = type;
-    if (location) filter.location = new RegExp(location, "i");
+    // ✅ type filter
+    if (type && ["rent", "sale"].includes(type)) {
+      filter.type = type;
+    }
 
-    if (q && q.trim()) {
+    // location filter
+    if (location) {
+      filter.location = { $regex: location, $options: "i" };
+    }
+
+    // category filter
+    if (category) {
+      filter.category = { $regex: category, $options: "i" };
+    }
+
+    // available filter
+    if (available === "true") filter.isAvailable = true;
+    if (available === "false") filter.isAvailable = false;
+
+    // search (text index if you want)
+    if (search) {
       filter.$or = [
-        { title: new RegExp(q, "i") },
-        { brand: new RegExp(q, "i") },
-        { model: new RegExp(q, "i") },
-        { location: new RegExp(q, "i") },
+        { title: { $regex: search, $options: "i" } },
+        { brand: { $regex: search, $options: "i" } },
+        { model: { $regex: search, $options: "i" } },
       ];
     }
 
-    if (maxPrice) {
-      const mp = Number(maxPrice);
-      if (!Number.isNaN(mp)) {
-        filter.$and = filter.$and || [];
+    // price filter (depends on type)
+    const min = minPrice ? Number(minPrice) : null;
+    const max = maxPrice ? Number(maxPrice) : null;
 
-        if (filter.type === "rent") filter.$and.push({ pricePerDay: { $lte: mp } });
-        else if (filter.type === "sale") filter.$and.push({ price: { $lte: mp } });
-        else {
-          filter.$and.push({
-            $or: [{ price: { $lte: mp } }, { pricePerDay: { $lte: mp } }],
-          });
-        }
-      }
+    if (min !== null || max !== null) {
+      const field = type === "rent" ? "pricePerDay" : "price";
+      filter[field] = {};
+      if (min !== null) filter[field].$gte = min;
+      if (max !== null) filter[field].$lte = max;
     }
 
-    const vehicles = await Vehicle.find(filter)
-      .populate("createdBy", "username role")
-      .sort({ createdAt: -1 });
+    // sorting
+    let sortObj = { createdAt: -1 };
+    if (sort === "priceLow") {
+      sortObj = type === "rent" ? { pricePerDay: 1 } : { price: 1 };
+    }
+    if (sort === "priceHigh") {
+      sortObj = type === "rent" ? { pricePerDay: -1 } : { price: -1 };
+    }
 
-    res.json(vehicles);
-  } catch (e) {
-    console.log(e);
-    res.status(500).json({ message: "Failed to fetch vehicles" });
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [vehicles, total] = await Promise.all([
+      Vehicle.find(filter).sort(sortObj).skip(skip).limit(limitNum),
+      Vehicle.countDocuments(filter),
+    ]);
+
+    res.json({
+      vehicles,
+      total,
+      page: pageNum,
+      pages: Math.ceil(total / limitNum) || 1,
+    });
+  } catch (error) {
+    console.log("GET vehicles error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-/**
- * ✅ BROKER: GET /api/vehicles/mine/list
- * MUST be above "/:id"
- */
-router.get("/mine/list", protect, authorize("broker"), async (req, res) => {
-  try {
-    const myVehicles = await Vehicle.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
-    res.json(myVehicles);
-  } catch (e) {
-    console.log(e);
-    res.status(500).json({ message: "Failed to fetch your vehicles" });
-  }
-});
-
-/**
- * PUBLIC: GET /api/vehicles/:id
- */
+// ✅ GET /api/vehicles/:id (PUBLIC)
 router.get("/:id", async (req, res) => {
   try {
-    const vehicle = await Vehicle.findById(req.params.id).populate("createdBy", "username role");
-    if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
-    res.json(vehicle);
-  } catch (e) {
-    res.status(400).json({ message: "Invalid vehicle id" });
+    const v = await Vehicle.findById(req.params.id).populate("createdBy", "username email role");
+    if (!v) return res.status(404).json({ message: "Vehicle not found" });
+    res.json(v);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-/**
- * BROKER: POST /api/vehicles
- */
+// ✅ POST /api/vehicles (BROKER ONLY)
 router.post("/", protect, authorize("broker"), async (req, res) => {
   try {
     const data = req.body;
 
+    // basic validation
     if (!data.title || !data.type || !data.location) {
       return res.status(400).json({ message: "title, type, location are required" });
     }
 
-    if (data.type === "rent" && (data.pricePerDay === null || data.pricePerDay === undefined)) {
-      return res.status(400).json({ message: "pricePerDay is required for rent type" });
+    if (!["rent", "sale"].includes(data.type)) {
+      return res.status(400).json({ message: "type must be rent or sale" });
     }
 
-    if (data.type === "sale" && (data.price === null || data.price === undefined)) {
+    // ensure pricing rules
+    if (data.type === "rent" && (data.pricePerDay === undefined || data.pricePerDay === null)) {
+      return res.status(400).json({ message: "pricePerDay is required for rent type" });
+    }
+    if (data.type === "sale" && (data.price === undefined || data.price === null)) {
       return res.status(400).json({ message: "price is required for sale type" });
     }
 
@@ -111,66 +130,46 @@ router.post("/", protect, authorize("broker"), async (req, res) => {
     });
 
     res.status(201).json(created);
-  } catch (e) {
-    console.log(e);
-    res.status(500).json({ message: "Failed to create vehicle" });
+  } catch (error) {
+    console.log("POST vehicle error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-/**
- * BROKER: PUT /api/vehicles/:id (only owner)
- */
+// ✅ PUT /api/vehicles/:id (BROKER ONLY, only own)
 router.put("/:id", protect, authorize("broker"), async (req, res) => {
   try {
-    const existing = await Vehicle.findById(req.params.id);
-    if (!existing) return res.status(404).json({ message: "Vehicle not found" });
+    const v = await Vehicle.findById(req.params.id);
+    if (!v) return res.status(404).json({ message: "Vehicle not found" });
 
-    if (existing.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "You can only edit your own vehicle" });
+    // only owner can update
+    if (String(v.createdBy) !== String(req.user._id)) {
+      return res.status(403).json({ message: "Access denied" });
     }
 
-    // ✅ validate pricing rules on update too
-    const incomingType = req.body.type ?? existing.type;
-    const incomingPrice = req.body.price ?? existing.price;
-    const incomingPricePerDay = req.body.pricePerDay ?? existing.pricePerDay;
-
-    if (incomingType === "rent" && (incomingPricePerDay === null || incomingPricePerDay === undefined)) {
-      return res.status(400).json({ message: "pricePerDay is required for rent type" });
-    }
-
-    if (incomingType === "sale" && (incomingPrice === null || incomingPrice === undefined)) {
-      return res.status(400).json({ message: "price is required for sale type" });
-    }
-
-    const updated = await Vehicle.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true, // ✅ IMPORTANT
-    });
-
+    const updated = await Vehicle.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updated);
-  } catch (e) {
-    console.log(e);
-    res.status(400).json({ message: "Failed to update vehicle" });
+  } catch (error) {
+    console.log("PUT vehicle error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-/**
- * BROKER: DELETE /api/vehicles/:id (only owner)
- */
+// ✅ DELETE /api/vehicles/:id (BROKER ONLY, only own)
 router.delete("/:id", protect, authorize("broker"), async (req, res) => {
   try {
-    const vehicle = await Vehicle.findById(req.params.id);
-    if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
+    const v = await Vehicle.findById(req.params.id);
+    if (!v) return res.status(404).json({ message: "Vehicle not found" });
 
-    if (vehicle.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "You can only delete your own vehicle" });
+    if (String(v.createdBy) !== String(req.user._id)) {
+      return res.status(403).json({ message: "Access denied" });
     }
 
-    await Vehicle.findByIdAndDelete(req.params.id);
+    await v.deleteOne();
     res.json({ message: "Vehicle deleted" });
-  } catch (e) {
-    console.log(e);
-    res.status(400).json({ message: "Failed to delete vehicle" });
+  } catch (error) {
+    console.log("DELETE vehicle error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

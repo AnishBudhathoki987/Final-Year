@@ -24,9 +24,8 @@ const Login = ({ setUser }) => {
       localStorage.setItem("token", res.data.token);
       setUser(res.data);
 
-      if (res.data.role === "admin") navigate("/admin/dashboard");
-      else if (res.data.role === "broker") navigate("/broker/dashboard");
-      else navigate("/user/dashboard");
+      // ✅ Always go to Home after login
+      navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     }
@@ -42,7 +41,7 @@ const Login = ({ setUser }) => {
 
         {/* RIGHT PANEL */}
         <div className="flex items-center justify-center px-10 relative">
-          {/* ✅ Back to Home button */}
+          {/* Back to Home */}
           <button
             type="button"
             onClick={() => navigate("/")}
@@ -119,7 +118,6 @@ const Login = ({ setUser }) => {
               </span>
             </div>
 
-            {/* ✅ Extra link to Home (optional) */}
             <div className="text-center mt-6">
               <button
                 type="button"

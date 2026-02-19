@@ -2,19 +2,20 @@ import mongoose from "mongoose";
 
 const vehicleSchema = new mongoose.Schema(
   {
-    // Basic
-    title: { type: String, required: true, trim: true }, // "Toyota Fortuner 2023"
+    // Core
+    title: { type: String, required: true, trim: true }, // e.g. "Toyota Fortuner 2023"
+
+    // ✅ IMPORTANT: use type (rent/sale)
     type: { type: String, enum: ["rent", "sale"], required: true },
 
     // Pricing
     price: { type: Number, default: null }, // sale price
     pricePerDay: { type: Number, default: null }, // rent price per day
 
-    // Broker form fields (matching your UI)
+    // Details
     brand: { type: String, trim: true },
     model: { type: String, trim: true },
     year: { type: Number },
-
     mileage: { type: Number, default: 0 },
 
     fuelType: {
@@ -23,7 +24,7 @@ const vehicleSchema = new mongoose.Schema(
       trim: true,
     },
 
-    category: { type: String, trim: true }, // SUV/Sedan/Hatchback (optional)
+    category: { type: String, trim: true }, // SUV/Sedan/Hatchback/EV etc.
 
     transmission: {
       type: String,
@@ -31,22 +32,20 @@ const vehicleSchema = new mongoose.Schema(
       trim: true,
     },
 
+    seats: { type: Number, default: 5 },
+
     location: { type: String, required: true, trim: true },
 
-    // Listing control
-    status: {
-      type: String,
-      enum: ["active", "hidden"],
-      default: "active",
-    },
+    // Listing
+    status: { type: String, enum: ["active", "hidden"], default: "active" },
+    isAvailable: { type: Boolean, default: true },
 
-    // UI content
-    features: { type: String, trim: true }, // short features field
+    features: { type: String, trim: true },
     description: { type: String, trim: true },
 
-    images: [{ type: String }], // URLs for now
+    images: [{ type: String }], // image URLs
 
-    // broker (owner)
+    // owner (broker)
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -56,7 +55,7 @@ const vehicleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Helpful indexes for search (regex or later $text)
+// Search index
 vehicleSchema.index({
   title: "text",
   brand: "text",

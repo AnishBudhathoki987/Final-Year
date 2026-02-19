@@ -1,7 +1,7 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import User from "../Models/user.js";
-import { protect } from "../MiddleWare/AuthValidation.js";
+import { protect, authorize } from "../MiddleWare/AuthValidation.js";
 
 const router = express.Router();
 
@@ -23,9 +23,16 @@ router.post("/register", async (req, res) => {
     // ✅ Allow ONLY "user" or "broker"
     const safeRole = role === "broker" ? "broker" : "user";
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
+    // ✅ Check email exists
+    const emailExists = await User.findOne({ email });
+    if (emailExists) {
       return res.status(400).json({ message: "User already exists" });
+    }
+
+    // ✅ Check username exists (THIS WAS MISSING)
+    const usernameExists = await User.findOne({ username });
+    if (usernameExists) {
+      return res.status(400).json({ message: "Username already taken" });
     }
 
     const user = await User.create({
@@ -35,7 +42,7 @@ router.post("/register", async (req, res) => {
       role: safeRole,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       id: user._id,
       username: user.username,
       email: user.email,
@@ -44,7 +51,13 @@ router.post("/register", async (req, res) => {
     });
   } catch (error) {
     console.log("Register error:", error);
-    res.status(500).json({ message: "Server error" });
+
+    // ✅ Handle Mongo duplicate key error nicely
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "Email or username already exists" });
+    }
+
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -69,16 +82,21 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    res.status(401).json({ message: "Invalid credentials" });
+    return res.status(401).json({ message: "Invalid credentials" });
   } catch (error) {
     console.log("Login error:", error);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
-// ✅ Get current user
+// ✅ Current user profile
 router.get("/me", protect, (req, res) => {
   res.json(req.user);
+});
+
+// ✅ RBAC Proof Route (for Sprint 1 completion)
+router.get("/admin-only", protect, authorize("admin"), (req, res) => {
+  res.json({ message: "Welcome Admin ✅" });
 });
 
 export default router;
