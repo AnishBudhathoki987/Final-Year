@@ -1,3 +1,4 @@
+// Models/Vehicle.js
 import mongoose from "mongoose";
 
 const vehicleSchema = new mongoose.Schema(
@@ -39,6 +40,10 @@ const vehicleSchema = new mongoose.Schema(
     // Listing
     status: { type: String, enum: ["active", "hidden"], default: "active" },
     isAvailable: { type: Boolean, default: true },
+
+    // ✅ NEW: soft delete fields
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date, default: null },
 
     features: { type: String, trim: true },
     description: { type: String, trim: true },

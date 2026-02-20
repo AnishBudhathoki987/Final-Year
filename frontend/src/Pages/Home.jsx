@@ -1,5 +1,5 @@
 // src/Pages/Home.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
@@ -17,68 +17,38 @@ export default function Home({ user }) {
   const navigate = useNavigate();
 
   // ----- Search Bar State -----
-  const [tab, setTab] = useState("rent"); // rent | buy
+  // ✅ all = show both rent + sale (default on page load)
+  const [tab, setTab] = useState("all"); // all | rent | buy
   const [location, setLocation] = useState("");
-  const [type, setType] = useState("Any Type");
+  const [type, setType] = useState("Any Type"); // UI label (maps to category)
   const [price, setPrice] = useState("Any Price");
 
-  // ----- Featured Vehicles (API with fallback) -----
-  const [featured, setFeatured] = useState([]);
-  const [loadingFeatured, setLoadingFeatured] = useState(true);
+  // ----- Home Vehicles shown on this page -----
+  const [homeResults, setHomeResults] = useState([]);
+  const [loadingHomeResults, setLoadingHomeResults] = useState(true);
 
-  const fallbackFeatured = useMemo(
-    () => [
-      {
-        _id: "1",
-        tag: "FOR SALE",
-        title: "Hyundai Creta",
-        meta: "2022 • Petrol • Automatic",
-        place: "Kathmandu",
-        price: "NPR 45 Lakhs",
-        image:
-          "https://images.unsplash.com/photo-1619767886558-efdc259cde1f?q=80&w=2000&auto=format&fit=crop",
-      },
-      {
-        _id: "2",
-        tag: "FOR RENT",
-        title: "Suzuki Swift",
-        meta: "2021 • Petrol • Manual",
-        place: "Pokhara",
-        price: "NPR 3,000 / day",
-        image:
-          "https://images.unsplash.com/photo-1605559424843-9e61a7b5b4b2?q=80&w=2000&auto=format&fit=crop",
-      },
-      {
-        _id: "3",
-        tag: "FOR SALE",
-        title: "Mahindra Scorpio",
-        meta: "2023 • Diesel • Manual",
-        place: "Lalitpur",
-        price: "NPR 60 Lakhs",
-        image:
-          "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=2000&auto=format&fit=crop",
-      },
-    ],
-    []
-  );
+  // ✅ to decide heading text (only show "Top Cars for Rent/Sale" after user searches)
+  const [hasSearched, setHasSearched] = useState(false);
 
+  // ✅ Load first 6 vehicles on page load (NO demo / NO forced type filter)
   useEffect(() => {
-    const loadFeatured = async () => {
-      setLoadingFeatured(true);
+    const loadHomeVehicles = async () => {
+      setLoadingHomeResults(true);
       try {
-        // If you don't have this API yet, it will fail and fallback will show.
-        const res = await axios.get("/api/vehicles?limit=6");
-        const data = Array.isArray(res.data) ? res.data : res.data?.vehicles || [];
-        setFeatured(data.slice(0, 3));
+        const res = await axios.get("/api/vehicles?limit=6&sort=newest");
+        const data = Array.isArray(res.data)
+          ? res.data
+          : res.data?.vehicles || [];
+        setHomeResults(data.slice(0, 6));
       } catch {
-        setFeatured(fallbackFeatured);
+        setHomeResults([]); // no demo fallback
       } finally {
-        setLoadingFeatured(false);
+        setLoadingHomeResults(false);
       }
     };
 
-    loadFeatured();
-  }, [fallbackFeatured]);
+    loadHomeVehicles();
+  }, []);
 
   // ----- Actions / Gating -----
   const handleListYourCar = () => {
@@ -95,14 +65,108 @@ export default function Home({ user }) {
     return navigate("/user/dashboard");
   };
 
-  const handleSearch = () => {
-    const params = new URLSearchParams();
-    params.set("mode", tab);
-    if (location.trim()) params.set("location", location.trim());
-    if (type !== "Any Type") params.set("type", type);
-    if (price !== "Any Price") params.set("price", price);
+  // ✅ HOME search (no navigation). Applies type filter ONLY when tab is rent/buy.
+  const handleSearch = async () => {
+    setLoadingHomeResults(true);
+    setHasSearched(true);
 
-    navigate(`/vehicles?${params.toString()}`);
+    try {
+      const params = new URLSearchParams();
+
+      // tab => backend expects type (rent | sale)
+      if (tab === "rent") params.set("type", "rent");
+      if (tab === "buy") params.set("type", "sale");
+      // if tab === "all" => do not send type, so it returns both rent + sale
+
+      if (location.trim()) params.set("location", location.trim());
+
+      // UI "type" is actually backend category
+      if (type !== "Any Type") params.set("category", type);
+
+      // map price to min/max (⚠️ only meaningful when tab is rent or buy)
+      if (price !== "Any Price") {
+        if (tab === "rent") {
+          // rent uses pricePerDay
+          if (price === "Below NPR 3,000/day") params.set("maxPrice", "3000");
+          if (price === "NPR 3,000–6,000/day") {
+            params.set("minPrice", "3000");
+            params.set("maxPrice", "6000");
+          }
+          if (price === "Above NPR 6,000/day") params.set("minPrice", "6000");
+        }
+
+        if (tab === "buy") {
+          // buy uses price
+          if (price === "Below NPR 30 Lakhs")
+            params.set("maxPrice", String(30 * 100000));
+          if (price === "NPR 30–60 Lakhs") {
+            params.set("minPrice", String(30 * 100000));
+            params.set("maxPrice", String(60 * 100000));
+          }
+          if (price === "Above NPR 60 Lakhs")
+            params.set("minPrice", String(60 * 100000));
+        }
+
+        // ✅ if tab === "all", ignore price because rent+sale use different fields
+      }
+
+      params.set("limit", "6");
+      params.set("sort", "newest");
+
+      const res = await axios.get(`/api/vehicles?${params.toString()}`);
+      const data = Array.isArray(res.data)
+        ? res.data
+        : res.data?.vehicles || [];
+
+      setHomeResults(data.slice(0, 6));
+    } catch {
+      setHomeResults([]);
+    } finally {
+      setLoadingHomeResults(false);
+    }
+  };
+
+  const resetFilters = async () => {
+    setTab("all");
+    setLocation("");
+    setType("Any Type");
+    setPrice("Any Price");
+    setHasSearched(false);
+
+    setLoadingHomeResults(true);
+    try {
+      const res = await axios.get("/api/vehicles?limit=6&sort=newest");
+      const data = Array.isArray(res.data)
+        ? res.data
+        : res.data?.vehicles || [];
+      setHomeResults(data.slice(0, 6));
+    } catch {
+      setHomeResults([]);
+    } finally {
+      setLoadingHomeResults(false);
+    }
+  };
+
+  const formatPrice = (v) => {
+    if (!v) return "—";
+    if (v.type === "rent") {
+      return `NPR ${Number(v.pricePerDay || 0).toLocaleString()} / day`;
+    }
+    return `NPR ${Number(v.price || 0).toLocaleString()}`;
+  };
+
+  const getCardImage = (v) => {
+    if (!v) return "https://via.placeholder.com/500x350?text=No+Image";
+    if (Array.isArray(v.images) && v.images.length) return v.images[0];
+    if (v.image) return v.image;
+    return "https://via.placeholder.com/500x350?text=No+Image";
+  };
+
+  const sectionTitle = () => {
+    // ✅ You asked: show “Top Cars for Rent/Sale only”, no subtitle line
+    if (!hasSearched || tab === "all") return "Top Cars";
+    if (tab === "rent") return "Top Cars for Rent";
+    return "Top Cars for Sale";
   };
 
   return (
@@ -121,10 +185,11 @@ export default function Home({ user }) {
             </h1>
 
             <p className="mt-4 text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
-              Connect with verified brokers and sellers. Experience secure payments via{" "}
+              Connect with verified brokers and sellers. Experience secure
+              payments via{" "}
               <span className="font-semibold text-emerald-600">eSewa</span> &{" "}
-              <span className="font-semibold text-purple-600">Khalti</span> for a hassle-free
-              journey.
+              <span className="font-semibold text-purple-600">Khalti</span> for a
+              hassle-free journey.
             </p>
 
             <div className="mt-8 flex items-center justify-center gap-3">
@@ -149,6 +214,17 @@ export default function Home({ user }) {
             {/* tabs */}
             <div className="px-6 pt-6 flex items-center gap-3">
               <button
+                onClick={() => setTab("all")}
+                className={`rounded-full px-4 py-2 text-xs font-bold transition ${
+                  tab === "all"
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                All
+              </button>
+
+              <button
                 onClick={() => setTab("rent")}
                 className={`rounded-full px-4 py-2 text-xs font-bold transition ${
                   tab === "rent"
@@ -158,6 +234,7 @@ export default function Home({ user }) {
               >
                 Rent
               </button>
+
               <button
                 onClick={() => setTab("buy")}
                 className={`rounded-full px-4 py-2 text-xs font-bold transition ${
@@ -205,7 +282,9 @@ export default function Home({ user }) {
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                <p className="text-[10px] font-bold text-slate-400">PRICE RANGE</p>
+                <p className="text-[10px] font-bold text-slate-400">
+                  PRICE RANGE
+                </p>
                 <div className="mt-2 flex items-center gap-2 text-sm">
                   <FaTag className="text-slate-400" />
                   <select
@@ -222,84 +301,107 @@ export default function Home({ user }) {
                     <option>Above NPR 60 Lakhs</option>
                   </select>
                 </div>
+                <p className="mt-2 text-[10px] text-slate-400">
+                  {tab === "all"
+                    ? "Tip: choose Rent or Buy to use price filter."
+                    : "Price filter applied to your selection."}
+                </p>
               </div>
 
-              <button
-                onClick={handleSearch}
-                className="rounded-2xl bg-blue-600 px-5 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition flex items-center justify-center gap-2"
-              >
-                <FaSearch /> Search Now
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSearch}
+                  className="flex-1 rounded-2xl bg-blue-600 px-5 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                >
+                  <FaSearch /> Search Now
+                </button>
+                <button
+                  onClick={resetFilters}
+                  className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                  type="button"
+                >
+                  Reset
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-    {/* ================= FEATURED VEHICLES ================= */}
-<section className="max-w-6xl mx-auto px-4 py-12">
-  <div className="flex items-end justify-between gap-4">
-    <div>
-      <h2 className="text-xl font-extrabold text-slate-900">Featured Vehicles</h2>
-      <p className="text-sm text-slate-500 mt-1">
-        Top picks for you in Kathmandu & Lalitpur
-      </p>
-    </div>
-
-    <button
-      onClick={() => navigate("/vehicles")}
-      className="text-sm font-semibold text-blue-600 hover:underline"
-    >
-      View All →
-    </button>
-  </div>
-
-  <div className="mt-6 grid md:grid-cols-3 gap-6">
-    {(loadingFeatured || featured.length === 0 ? fallbackFeatured : featured)
-      .slice(0, 3)
-      .map((v) => (
-        <div
-          key={v._id}
-          className="bg-white rounded-3xl border border-slate-100 shadow-[0_18px_60px_rgba(0,0,0,0.06)] overflow-hidden"
-        >
-          <div className="relative h-44">
-            <img
-              src={v.image}
-              alt={v.title}
-              className="h-full w-full object-cover"
-            />
-            <div className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-extrabold text-slate-800">
-              {v.tag || (tab === "rent" ? "FOR RENT" : "FOR SALE")}
-            </div>
+      {/* ================= RESULTS ================= */}
+      <section className="max-w-6xl mx-auto px-4 py-12">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-900">
+              {sectionTitle()}
+            </h2>
           </div>
 
-          <div className="p-5">
-            <h3 className="font-extrabold text-slate-900">{v.title}</h3>
-            <p className="mt-1 text-xs text-slate-500">{v.meta}</p>
-
-            <div className="mt-3 flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slate-500 flex items-center gap-2">
-                  <FaMapMarkerAlt className="text-slate-400" />
-                  {v.place}
-                </p>
-                <p className="mt-2 text-sm font-extrabold text-blue-600">
-                  {v.price}
-                </p>
-              </div>
-
-              <button
-                onClick={() => navigate(`/vehicles/${v._id}`)}
-                className="text-sm font-semibold text-slate-700 hover:text-blue-600 transition"
-              >
-                View Details
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={() => navigate("/vehicles")}
+            className="text-sm font-semibold text-blue-600 hover:underline"
+          >
+            View All →
+          </button>
         </div>
-      ))}
-  </div>
-</section>
 
+        <div className="mt-6 grid md:grid-cols-3 gap-6">
+          {loadingHomeResults ? (
+            <div className="md:col-span-3 text-center py-14 text-slate-500 font-semibold">
+              Loading vehicles...
+            </div>
+          ) : homeResults.length === 0 ? (
+            <div className="md:col-span-3 text-center py-14 text-slate-500 font-semibold">
+              No vehicles found.
+            </div>
+          ) : (
+            homeResults.slice(0, 6).map((v) => (
+              <div
+                key={v._id}
+                className="bg-white rounded-3xl border border-slate-100 shadow-[0_18px_60px_rgba(0,0,0,0.06)] overflow-hidden"
+              >
+                <div className="relative h-44">
+                  <img
+                    src={getCardImage(v)}
+                    alt={v.title}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-extrabold text-slate-800">
+                    {v.type === "rent" ? "FOR RENT" : "FOR SALE"}
+                  </div>
+                </div>
+
+                <div className="p-5">
+                  <h3 className="font-extrabold text-slate-900">{v.title}</h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {v.year ? `${v.year} • ` : ""}
+                    {v.fuelType || "—"} • {v.transmission || "—"}
+                  </p>
+
+                  <div className="mt-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-500 flex items-center gap-2">
+                        <FaMapMarkerAlt className="text-slate-400" />
+                        {v.location || "—"}
+                      </p>
+                      <p className="mt-2 text-sm font-extrabold text-blue-600">
+                        {formatPrice(v)}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => navigate(`/vehicles/${v._id}`)}
+                      className="text-sm font-semibold text-slate-700 hover:text-blue-600 transition"
+                    >
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
 
       {/* ================= WHY CHOOSE ================= */}
       <section id="about" className="bg-white border-y border-slate-100">
@@ -308,7 +410,8 @@ export default function Home({ user }) {
             Why Choose CarFusion?
           </h2>
           <p className="mt-2 text-center text-sm text-slate-500">
-            We simplify the car buying and renting experience in Nepal with trust and technology.
+            We simplify the car buying and renting experience in Nepal with trust
+            and technology.
           </p>
 
           <div className="mt-10 grid md:grid-cols-4 gap-6">
@@ -343,9 +446,12 @@ export default function Home({ user }) {
           {/* CTA Banner */}
           <div className="mt-12 rounded-3xl bg-gradient-to-br from-[#0b1220] via-[#0b1220] to-[#121a2b] text-white px-8 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6 shadow-[0_30px_80px_rgba(0,0,0,0.25)]">
             <div>
-              <h3 className="text-2xl font-extrabold">Ready to find your dream ride?</h3>
+              <h3 className="text-2xl font-extrabold">
+                Ready to find your dream ride?
+              </h3>
               <p className="mt-2 text-sm text-white/75 max-w-xl">
-                Join thousands of users in Nepal who trust CarFusion for their automotive needs.
+                Join thousands of users in Nepal who trust CarFusion for their
+                automotive needs.
               </p>
             </div>
 
@@ -378,8 +484,8 @@ export default function Home({ user }) {
               <span className="font-extrabold text-slate-900">CarFusion</span>
             </div>
             <p className="mt-3 text-sm text-slate-500 leading-relaxed">
-              Nepal’s premier digital marketplace for renting and buying vehicles.
-              Trusted by locals and tourists alike.
+              Nepal’s premier digital marketplace for renting and buying
+              vehicles. Trusted by locals and tourists alike.
             </p>
             <div className="mt-4 text-xs text-slate-400">
               © 2026 CarFusion Nepal. All rights reserved.
@@ -420,6 +526,7 @@ export default function Home({ user }) {
   );
 }
 
+/* ---------- small UI helpers ---------- */
 function Feature({ icon, title, desc }) {
   return (
     <div className="rounded-3xl border border-slate-100 bg-[#f7f9ff] p-6 shadow-[0_18px_60px_rgba(0,0,0,0.04)]">
@@ -436,7 +543,9 @@ function Stat({ value, label }) {
   return (
     <div className="rounded-3xl border border-slate-100 bg-[#f6f7fb] p-6">
       <div className="text-3xl font-extrabold text-slate-900">{value}</div>
-      <div className="mt-2 text-xs font-bold text-slate-500 tracking-wider">{label}</div>
+      <div className="mt-2 text-xs font-bold text-slate-500 tracking-wider">
+        {label}
+      </div>
     </div>
   );
 }

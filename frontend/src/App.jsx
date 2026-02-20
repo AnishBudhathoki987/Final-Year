@@ -18,6 +18,8 @@ import Vehicles from "./Pages/Vehicles";
 import VehicleDetails from "./Pages/VehicleDetails"
 import BrokerDashboard from "./Pages/BrokerDashboard";
 import AddVehicle from "./Pages/AddVehicle";
+import ManageVehicles from "./Pages/ManageVehicles";
+import EditVehicle from "./Pages/EditVehicle";
 
 
 function Layout({ user, setUser }) {
@@ -47,6 +49,8 @@ function Layout({ user, setUser }) {
         {/*Broker dashboard*/}
         <Route path="/broker/dashboard" element={<BrokerDashboard user={user} setUser={setUser} />} />
         <Route path="/broker/add-vehicle" element={<AddVehicle user={user} />} />
+        <Route path="/broker/my-vehicles" element={<ManageVehicles user={user} />} />
+        <Route path="/broker/edit-vehicle/:id" element={<EditVehicle user={user} />} />
       </Routes>
     </>
   );

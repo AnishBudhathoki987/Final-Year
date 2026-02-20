@@ -1,5 +1,5 @@
-// src/Pages/Vehicles.jsx  ✅ Demo data REMOVED (all other logic kept same)
-import { useEffect, useMemo, useState } from "react";
+// src/Pages/Vehicles.jsx
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { FaSearch, FaMapMarkerAlt, FaGasPump, FaCogs, FaUsers, FaHeart } from "react-icons/fa";
@@ -10,19 +10,14 @@ export default function Vehicles({ user }) {
 
   // ✅ Backend uses: type = "rent" | "sale"
   const initialType = params.get("type") || "rent";
-  const initialQ = params.get("search") || ""; // ✅ match backend
+  const initialQ = params.get("search") || "";
   const initialCategory = params.get("category") || "All Types";
   const initialLocation = params.get("location") || "";
-  const initialMaxPrice = Number(params.get("maxPrice") || 10000000);
-  const initialSort = params.get("sort") || "recommended";
 
   const [listingType, setListingType] = useState(initialType);
   const [q, setQ] = useState(initialQ);
   const [category, setCategory] = useState(initialCategory);
   const [location, setLocation] = useState(initialLocation);
-  const [maxPrice, setMaxPrice] = useState(initialMaxPrice);
-  const [availableNow, setAvailableNow] = useState(params.get("available") === "true");
-  const [sort, setSort] = useState(initialSort);
 
   const [loading, setLoading] = useState(true);
   const [vehicles, setVehicles] = useState([]);
@@ -42,7 +37,7 @@ export default function Vehicles({ user }) {
     });
   };
 
-  const fetchVehicles = async (sp = params) => {
+  const fetchVehicles = async (sp) => {
     setLoading(true);
     try {
       const res = await axios.get(`/api/vehicles?${sp.toString()}`);
@@ -56,34 +51,81 @@ export default function Vehicles({ user }) {
     }
   };
 
-  const applyFilters = () => {
+  // ✅ Build query params from state (NO maxPrice, NO sort, NO available)
+  const buildParamsFromState = () => {
     const next = new URLSearchParams();
-
     next.set("type", listingType);
 
-    if (q.trim()) next.set("search", q.trim()); // ✅ match backend key
+    if (q.trim()) next.set("search", q.trim());
     if (category !== "All Types") next.set("category", category);
     if (location.trim()) next.set("location", location.trim());
 
-    // ✅ maxPrice only (backend supports maxPrice)
-    next.set("maxPrice", String(maxPrice));
-    next.set("available", String(availableNow));
-
-    // ✅ map recommended to newest (backend supports newest/priceLow/priceHigh)
-    const safeSort = sort === "recommended" ? "newest" : sort;
-    next.set("sort", safeSort);
-
-    setParams(next);
-    fetchVehicles(next);
+    return next;
   };
 
-  // initial load
+  // ✅ Debounce auto-fetch when filters change
+  const debounceRef = useRef(null);
   useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(() => {
+      const next = buildParamsFromState();
+      setParams(next);
+      fetchVehicles(next);
+    }, 450);
+
+    return () => clearTimeout(debounceRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listingType, q, category, location]);
+
+  // ✅ Initial load (use current URL params)
+  const didInitRef = useRef(false);
+  useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
     fetchVehicles(params);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ Demo removed: show ONLY real vehicles from backend
+  // ✅ If user uses back/forward in browser, reflect URL -> state
+  const skipSyncRef = useRef(false);
+  useEffect(() => {
+    if (skipSyncRef.current) {
+      skipSyncRef.current = false;
+      return;
+    }
+
+    const pType = params.get("type") || "rent";
+    const pQ = params.get("search") || "";
+    const pCategory = params.get("category") || "All Types";
+    const pLocation = params.get("location") || "";
+
+    setListingType(pType);
+    setQ(pQ);
+    setCategory(pCategory);
+    setLocation(pLocation);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
+
+  const setParamsSafe = (next) => {
+    skipSyncRef.current = true;
+    setParams(next);
+  };
+
+  const clearFilters = () => {
+    setListingType("rent");
+    setQ("");
+    setCategory("All Types");
+    setLocation("");
+
+    const next = new URLSearchParams();
+    next.set("type", "rent");
+
+    setParamsSafe(next);
+    fetchVehicles(next);
+  };
+
+  // ✅ Optional client-side safety filter
   const visibleList = useMemo(() => {
     return vehicles
       .filter((v) => (listingType ? v.type === listingType : true))
@@ -99,34 +141,8 @@ export default function Vehicles({ user }) {
         location.trim()
           ? (v.location || "").toLowerCase().includes(location.trim().toLowerCase())
           : true
-      )
-      .filter((v) => {
-        const priceValue = v.type === "rent" ? Number(v.pricePerDay || 0) : Number(v.price || 0);
-        return priceValue <= maxPrice;
-      });
-  }, [vehicles, listingType, q, category, location, maxPrice]);
-
-  // Nice slider fill
-  const sliderMax = 10000000;
-  const sliderPct = Math.max(0, Math.min(100, (maxPrice / sliderMax) * 100));
-
-  const clearFilters = () => {
-    setListingType("rent");
-    setQ("");
-    setCategory("All Types");
-    setLocation("");
-    setMaxPrice(10000000);
-    setAvailableNow(false);
-    setSort("recommended");
-
-    const next = new URLSearchParams();
-    next.set("type", "rent");
-    next.set("maxPrice", String(10000000));
-    next.set("available", "false");
-    next.set("sort", "newest"); // backend safe
-    setParams(next);
-    fetchVehicles(next);
-  };
+      );
+  }, [vehicles, listingType, q, category, location]);
 
   return (
     <div className="bg-[#f6f7fb] min-h-screen">
@@ -138,26 +154,24 @@ export default function Vehicles({ user }) {
             <p className="mt-2 text-slate-500">Find the perfect car for your journey.</p>
           </div>
 
-          <div className="w-full sm:w-[260px]">
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100"
+          {/* ✅ Only Clear button */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={clearFilters}
+              type="button"
+              className="rounded-3xl border border-slate-200 bg-white px-6 py-3 text-sm font-extrabold text-slate-700 hover:bg-slate-50 transition"
             >
-              <option value="recommended">Recommended</option>
-              <option value="newest">Newest</option>
-              <option value="priceLow">Price: Low to High</option>
-              <option value="priceHigh">Price: High to Low</option>
-            </select>
+              Clear
+            </button>
           </div>
         </div>
 
-        {/* Filter bar */}
+        {/* ✅ Clean Filter Bar */}
         <div className="mt-10">
-          <div className="rounded-[36px] bg-white border border-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.08)] p-4 sm:p-5">
+          <div className="rounded-[40px] bg-white border border-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.08)] px-4 sm:px-6 py-5">
             <div className="flex flex-col xl:flex-row xl:items-center gap-4">
-              {/* Search pill */}
-              <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3.5 flex-1 min-w-[220px]">
+              {/* Search */}
+              <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3.5 flex-1 min-w-[240px]">
                 <div className="h-9 w-9 rounded-2xl bg-slate-100 grid place-items-center">
                   <FaSearch className="text-slate-400" />
                 </div>
@@ -169,7 +183,7 @@ export default function Vehicles({ user }) {
                 />
               </div>
 
-              {/* Rent/Buy toggle pill */}
+              {/* Rent/Buy Toggle */}
               <div className="inline-flex rounded-3xl bg-slate-100 p-1.5 self-start xl:self-auto">
                 <button
                   type="button"
@@ -195,7 +209,7 @@ export default function Vehicles({ user }) {
                 </button>
               </div>
 
-              {/* Category pill */}
+              {/* Category */}
               <div className="min-w-[210px]">
                 <select
                   value={category}
@@ -211,7 +225,7 @@ export default function Vehicles({ user }) {
                 </select>
               </div>
 
-              {/* Location pill */}
+              {/* Location */}
               <div className="min-w-[260px] flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3.5">
                 <div className="h-9 w-9 rounded-2xl bg-slate-100 grid place-items-center">
                   <FaMapMarkerAlt className="text-slate-400" />
@@ -222,59 +236,6 @@ export default function Vehicles({ user }) {
                   placeholder="Location"
                   className="w-full outline-none text-sm text-slate-700 placeholder:text-slate-400"
                 />
-              </div>
-
-              {/* Max price slider */}
-              <div className="flex-1 min-w-[280px]">
-                <div className="flex items-center justify-between text-sm font-extrabold text-slate-700">
-                  <span>Max Price</span>
-                  <span className="text-slate-600">{formatNPR(maxPrice)}</span>
-                </div>
-
-                <div className="mt-3">
-                  <input
-                    type="range"
-                    min={0}
-                    max={sliderMax}
-                    step={50000}
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(Number(e.target.value))}
-                    className="w-full h-2 rounded-full appearance-none cursor-pointer"
-                    style={{
-                      background: `linear-gradient(to right, #2563eb ${sliderPct}%, #e2e8f0 ${sliderPct}%)`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Available now */}
-              <label className="flex items-center gap-2 text-sm font-extrabold text-slate-700 whitespace-nowrap px-2">
-                <input
-                  type="checkbox"
-                  checked={availableNow}
-                  onChange={(e) => setAvailableNow(e.target.checked)}
-                  className="h-4 w-4 accent-blue-600"
-                />
-                Available Now
-              </label>
-
-              {/* Buttons */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={clearFilters}
-                  type="button"
-                  className="rounded-3xl border border-slate-200 bg-white px-5 py-3 text-sm font-extrabold text-slate-700 hover:bg-slate-50 transition"
-                >
-                  Clear
-                </button>
-
-                <button
-                  onClick={applyFilters}
-                  type="button"
-                  className="rounded-3xl bg-blue-600 px-7 py-3 text-sm font-extrabold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 transition whitespace-nowrap"
-                >
-                  Apply Filters
-                </button>
               </div>
             </div>
           </div>

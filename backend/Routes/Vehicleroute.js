@@ -5,6 +5,25 @@ import { protect, authorize } from "../MiddleWare/AuthValidation.js";
 
 const router = express.Router();
 
+/**
+ * ✅ NEW: GET /api/vehicles/stats/mine (BROKER ONLY)
+ * - activeCount: not deleted
+ * - deletedCount: soft deleted
+ */
+router.get("/stats/mine", protect, authorize("broker"), async (req, res) => {
+  try {
+    const [activeCount, deletedCount] = await Promise.all([
+      Vehicle.countDocuments({ createdBy: req.user._id, isDeleted: false }),
+      Vehicle.countDocuments({ createdBy: req.user._id, isDeleted: true }),
+    ]);
+
+    res.json({ activeCount, deletedCount });
+  } catch (e) {
+    console.log("GET stats/mine error:", e);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // ✅ GET /api/vehicles (PUBLIC) with filters + pagination
 router.get("/", async (req, res) => {
   try {
@@ -21,7 +40,8 @@ router.get("/", async (req, res) => {
       available, // true/false
     } = req.query;
 
-    const filter = { status: "active" };
+    //  Only show active
+    const filter = { status: "active", isDeleted: false };
 
     if (type && ["rent", "sale"].includes(type)) filter.type = type;
 
@@ -75,12 +95,12 @@ router.get("/", async (req, res) => {
 });
 
 /**
- * ✅ NEW: GET /api/vehicles/mine (BROKER ONLY)
- * Returns vehicles created by the logged-in broker (active + hidden)
+ * ✅ GET /api/vehicles/mine (BROKER ONLY)
+ * Returns vehicles created by the logged-in broker (active + hidden), not deleted
  */
 router.get("/mine", protect, authorize("broker"), async (req, res) => {
   try {
-    const vehicles = await Vehicle.find({ createdBy: req.user._id })
+    const vehicles = await Vehicle.find({ createdBy: req.user._id, isDeleted: false })
       .sort({ createdAt: -1 })
       .populate("createdBy", "name username email role");
 
@@ -99,7 +119,8 @@ router.get("/:id", async (req, res) => {
       "name username email role"
     );
 
-    if (!v) return res.status(404).json({ message: "Vehicle not found" });
+    // ✅ Block deleted
+    if (!v || v.isDeleted) return res.status(404).json({ message: "Vehicle not found" });
 
     res.json(v);
   } catch (error) {
@@ -131,6 +152,9 @@ router.post("/", protect, authorize("broker"), async (req, res) => {
     const created = await Vehicle.create({
       ...data,
       createdBy: req.user._id,
+      // ✅ ensure new vehicles are not deleted
+      isDeleted: false,
+      deletedAt: null,
     });
 
     res.status(201).json(created);
@@ -144,7 +168,7 @@ router.post("/", protect, authorize("broker"), async (req, res) => {
 router.put("/:id", protect, authorize("broker"), async (req, res) => {
   try {
     const v = await Vehicle.findById(req.params.id);
-    if (!v) return res.status(404).json({ message: "Vehicle not found" });
+    if (!v || v.isDeleted) return res.status(404).json({ message: "Vehicle not found" });
 
     if (String(v.createdBy) !== String(req.user._id)) {
       return res.status(403).json({ message: "Access denied" });
@@ -158,17 +182,21 @@ router.put("/:id", protect, authorize("broker"), async (req, res) => {
   }
 });
 
-// ✅ DELETE /api/vehicles/:id (BROKER ONLY, only own)
+// ✅ DELETE /api/vehicles/:id (BROKER ONLY, only own)  -> SOFT DELETE
 router.delete("/:id", protect, authorize("broker"), async (req, res) => {
   try {
     const v = await Vehicle.findById(req.params.id);
-    if (!v) return res.status(404).json({ message: "Vehicle not found" });
+    if (!v || v.isDeleted) return res.status(404).json({ message: "Vehicle not found" });
 
     if (String(v.createdBy) !== String(req.user._id)) {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    await v.deleteOne();
+    // ✅ soft delete (keep record for deleted count)
+    v.isDeleted = true;
+    v.deletedAt = new Date();
+    await v.save();
+
     res.json({ message: "Vehicle deleted" });
   } catch (error) {
     console.log("DELETE vehicle error:", error);

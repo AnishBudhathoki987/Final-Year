@@ -9,9 +9,7 @@ import {
   FaCarSide,
   FaUserCircle,
   FaSignOutAlt,
-  FaEye,
   FaCheckCircle,
-  FaEyeSlash,
   FaEdit,
   FaTrash,
 } from "react-icons/fa";
@@ -30,6 +28,9 @@ export default function BrokerDashboard({ user, setUser }) {
   const [loading, setLoading] = useState(true);
   const [myVehicles, setMyVehicles] = useState([]);
 
+  // ✅ NEW: stats from backend
+  const [statsApi, setStatsApi] = useState({ activeCount: 0, deletedCount: 0 });
+
   const loadMyVehicles = async () => {
     setLoading(true);
     try {
@@ -47,22 +48,32 @@ export default function BrokerDashboard({ user, setUser }) {
     }
   };
 
-  // ✅ Fetch broker vehicles
+  const loadStats = async () => {
+    try {
+      const res = await axios.get("/api/vehicles/stats/mine", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setStatsApi(res.data || { activeCount: 0, deletedCount: 0 });
+    } catch (err) {
+      console.log("Load stats failed:", err);
+      setStatsApi({ activeCount: 0, deletedCount: 0 });
+    }
+  };
+
+  // ✅ Fetch broker vehicles + stats
   useEffect(() => {
-    if (token && user?.role === "broker") loadMyVehicles();
-    else setLoading(false);
+    if (token && user?.role === "broker") {
+      loadMyVehicles();
+      loadStats();
+    } else {
+      setLoading(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
 
   const stats = useMemo(() => {
     const total = myVehicles.length;
-    const active = myVehicles.filter((v) => v.status === "active").length;
-    const hidden = myVehicles.filter((v) => v.status === "hidden").length;
-
-    const views = myVehicles.reduce((sum, v) => sum + Number(v.views || 0), 0);
-    const viewsLabel = views >= 1000 ? `${(views / 1000).toFixed(1)}k` : String(views || 0);
-
-    return { total, active, hidden, viewsLabel };
+    return { total };
   }, [myVehicles]);
 
   const formatNPR = (n) => `Rs. ${Number(n || 0).toLocaleString("en-US")}`;
@@ -92,8 +103,15 @@ export default function BrokerDashboard({ user, setUser }) {
       await axios.delete(`/api/vehicles/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // refresh
+
+      // remove from UI list
       setMyVehicles((prev) => prev.filter((v) => v._id !== id));
+
+      // ✅ update stats instantly
+      setStatsApi((p) => ({
+        activeCount: Math.max(0, Number(p.activeCount || 0) - 1),
+        deletedCount: Number(p.deletedCount || 0) + 1,
+      }));
     } catch (err) {
       console.log("Delete failed:", err);
       alert("Delete failed. Check console.");
@@ -173,12 +191,11 @@ export default function BrokerDashboard({ user, setUser }) {
             </div>
           </div>
 
-          {/* Stat cards */}
-          <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Stat cards (UPDATED) */}
+          <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <StatCard icon={<FaCarSide />} label="TOTAL VEHICLES" value={stats.total} />
-            <StatCard icon={<FaCheckCircle />} label="ACTIVE LISTINGS" value={stats.active} />
-            <StatCard icon={<FaEyeSlash />} label="HIDDEN LISTINGS" value={stats.hidden} />
-            <StatCard icon={<FaEye />} label="TOTAL VIEWS" value={stats.viewsLabel} />
+            <StatCard icon={<FaCheckCircle />} label="ACTIVE LISTINGS" value={statsApi.activeCount} />
+            <StatCard icon={<FaTrash />} label="DELETED LISTINGS" value={statsApi.deletedCount} />
           </div>
 
           {/* Primary actions */}
@@ -200,7 +217,10 @@ export default function BrokerDashboard({ user, setUser }) {
             </button>
 
             <button
-              onClick={loadMyVehicles}
+              onClick={() => {
+                loadMyVehicles();
+                loadStats();
+              }}
               className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
               type="button"
             >
