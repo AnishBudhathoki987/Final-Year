@@ -6,7 +6,7 @@ import path from "path";
 import authRoutes from "./Routes/AuthRouter.js";
 import { connectDB } from "./Config/db.js";
 import vehicleRoutes from "./Routes/Vehicleroute.js";
-import uploadRoutes from "./Routes/UploadRoute.js";
+import uploadRoutes from "./Routes/Uploadroute.js";
 
 dotenv.config();
 

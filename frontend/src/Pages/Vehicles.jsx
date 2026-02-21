@@ -8,20 +8,72 @@ export default function Vehicles({ user }) {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
 
-  // ✅ Backend uses: type = "rent" | "sale"
-  const initialType = params.get("type") || "rent";
+  // ✅ URL -> initial applied filters
+  const initialType = params.get("type") || "all";
   const initialQ = params.get("search") || "";
   const initialCategory = params.get("category") || "All Types";
   const initialLocation = params.get("location") || "";
 
-  const [listingType, setListingType] = useState(initialType);
+  // =========================
+  // ✅ Draft (typing) states
+  // =========================
+  const [listingType, setListingType] = useState(initialType); // all | rent | sale
   const [q, setQ] = useState(initialQ);
   const [category, setCategory] = useState(initialCategory);
   const [location, setLocation] = useState(initialLocation);
 
+  // =========================
+  // ✅ Applied states (ONLY used for filtering & API)
+  // =========================
+  const [appliedType, setAppliedType] = useState(initialType);
+  const [appliedQ, setAppliedQ] = useState(initialQ);
+  const [appliedCategory, setAppliedCategory] = useState(initialCategory);
+  const [appliedLocation, setAppliedLocation] = useState(initialLocation);
+
   const [loading, setLoading] = useState(true);
   const [vehicles, setVehicles] = useState([]);
   const [favorites, setFavorites] = useState(() => new Set());
+
+  // =========================
+  // ✅ Compare
+  // =========================
+  const LS_KEY = "carfusion_compare_ids";
+  const MAX_COMPARE = 2;
+
+  const [compareIds, setCompareIds] = useState(() => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.slice(0, MAX_COMPARE) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const saveCompare = (next) => {
+    const cleaned = Array.isArray(next) ? next.slice(0, MAX_COMPARE) : [];
+    setCompareIds(cleaned);
+    localStorage.setItem(LS_KEY, JSON.stringify(cleaned));
+  };
+
+  const toggleCompare = (id) => {
+    const has = compareIds.includes(id);
+
+    if (has) {
+      saveCompare(compareIds.filter((x) => x !== id));
+      return;
+    }
+
+    if (compareIds.length >= MAX_COMPARE) {
+      alert(`You can compare only ${MAX_COMPARE} vehicles.`);
+      return;
+    }
+
+    saveCompare([...compareIds, id]);
+  };
+
+  const clearCompare = () => saveCompare([]);
+  // =========================
 
   const formatNPR = (n) => {
     if (n === null || n === undefined) return "—";
@@ -51,34 +103,19 @@ export default function Vehicles({ user }) {
     }
   };
 
-  // ✅ Build query params from state (NO maxPrice, NO sort, NO available)
-  const buildParamsFromState = () => {
+  // ✅ Build params from APPLIED state (not draft)
+  const buildParamsFromApplied = () => {
     const next = new URLSearchParams();
-    next.set("type", listingType);
 
-    if (q.trim()) next.set("search", q.trim());
-    if (category !== "All Types") next.set("category", category);
-    if (location.trim()) next.set("location", location.trim());
+    if (appliedType !== "all") next.set("type", appliedType);
+    if (appliedQ.trim()) next.set("search", appliedQ.trim());
+    if (appliedCategory !== "All Types") next.set("category", appliedCategory);
+    if (appliedLocation.trim()) next.set("location", appliedLocation.trim());
 
     return next;
   };
 
-  // ✅ Debounce auto-fetch when filters change
-  const debounceRef = useRef(null);
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    debounceRef.current = setTimeout(() => {
-      const next = buildParamsFromState();
-      setParams(next);
-      fetchVehicles(next);
-    }, 450);
-
-    return () => clearTimeout(debounceRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listingType, q, category, location]);
-
-  // ✅ Initial load (use current URL params)
+  // ✅ Initial load using URL (applied)
   const didInitRef = useRef(false);
   useEffect(() => {
     if (didInitRef.current) return;
@@ -87,7 +124,7 @@ export default function Vehicles({ user }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ If user uses back/forward in browser, reflect URL -> state
+  // ✅ Back/forward: URL -> both draft + applied
   const skipSyncRef = useRef(false);
   useEffect(() => {
     if (skipSyncRef.current) {
@@ -95,15 +132,22 @@ export default function Vehicles({ user }) {
       return;
     }
 
-    const pType = params.get("type") || "rent";
+    const pType = params.get("type") || "all";
     const pQ = params.get("search") || "";
     const pCategory = params.get("category") || "All Types";
     const pLocation = params.get("location") || "";
 
+    // draft
     setListingType(pType);
     setQ(pQ);
     setCategory(pCategory);
     setLocation(pLocation);
+
+    // applied
+    setAppliedType(pType);
+    setAppliedQ(pQ);
+    setAppliedCategory(pCategory);
+    setAppliedLocation(pLocation);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
@@ -112,49 +156,74 @@ export default function Vehicles({ user }) {
     setParams(next);
   };
 
-  const clearFilters = () => {
-    setListingType("rent");
-    setQ("");
-    setCategory("All Types");
-    setLocation("");
+  // ✅ MANUAL APPLY: draft -> applied, then fetch
+  const applyFilters = () => {
+    setAppliedType(listingType);
+    setAppliedQ(q);
+    setAppliedCategory(category);
+    setAppliedLocation(location);
 
+    // build params from what user just applied
     const next = new URLSearchParams();
-    next.set("type", "rent");
+    if (listingType !== "all") next.set("type", listingType);
+    if (q.trim()) next.set("search", q.trim());
+    if (category !== "All Types") next.set("category", category);
+    if (location.trim()) next.set("location", location.trim());
 
     setParamsSafe(next);
     fetchVehicles(next);
   };
 
-  // ✅ Optional client-side safety filter
+  const clearFilters = () => {
+    // draft
+    setListingType("all");
+    setQ("");
+    setCategory("All Types");
+    setLocation("");
+
+    // applied
+    setAppliedType("all");
+    setAppliedQ("");
+    setAppliedCategory("All Types");
+    setAppliedLocation("");
+
+    const next = new URLSearchParams(); // empty => all
+    setParamsSafe(next);
+    fetchVehicles(next);
+  };
+
+  // ✅ NOW filtering is MANUAL because it uses APPLIED values only
   const visibleList = useMemo(() => {
     return vehicles
-      .filter((v) => (listingType ? v.type === listingType : true))
+      .filter((v) => (appliedType === "all" ? true : v.type === appliedType))
       .filter((v) =>
-        q.trim() ? (v.title || "").toLowerCase().includes(q.trim().toLowerCase()) : true
+        appliedQ.trim()
+          ? (v.title || "").toLowerCase().includes(appliedQ.trim().toLowerCase())
+          : true
       )
       .filter((v) =>
-        category === "All Types"
+        appliedCategory === "All Types"
           ? true
-          : (v.category || "").toLowerCase() === category.toLowerCase()
+          : (v.category || "").toLowerCase() === appliedCategory.toLowerCase()
       )
       .filter((v) =>
-        location.trim()
-          ? (v.location || "").toLowerCase().includes(location.trim().toLowerCase())
+        appliedLocation.trim()
+          ? (v.location || "").toLowerCase().includes(appliedLocation.trim().toLowerCase())
           : true
       );
-  }, [vehicles, listingType, q, category, location]);
+  }, [vehicles, appliedType, appliedQ, appliedCategory, appliedLocation]);
 
   return (
     <div className="bg-[#f6f7fb] min-h-screen">
       <div className="max-w-6xl mx-auto px-4 pt-10 pb-14">
-        {/* Header row */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900">Browse Vehicles</h1>
             <p className="mt-2 text-slate-500">Find the perfect car for your journey.</p>
           </div>
 
-          {/* ✅ Only Clear button */}
+          {/* Clear + Apply */}
           <div className="flex items-center gap-3">
             <button
               onClick={clearFilters}
@@ -163,10 +232,18 @@ export default function Vehicles({ user }) {
             >
               Clear
             </button>
+
+            <button
+              onClick={applyFilters}
+              type="button"
+              className="rounded-3xl bg-blue-600 px-6 py-3 text-sm font-extrabold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 transition"
+            >
+              Apply Filters
+            </button>
           </div>
         </div>
 
-        {/* ✅ Clean Filter Bar */}
+        {/* Filter Bar */}
         <div className="mt-10">
           <div className="rounded-[40px] bg-white border border-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.08)] px-4 sm:px-6 py-5">
             <div className="flex flex-col xl:flex-row xl:items-center gap-4">
@@ -180,15 +257,29 @@ export default function Vehicles({ user }) {
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Search vehicles (make, model...)"
                   className="w-full outline-none text-sm text-slate-700 placeholder:text-slate-400"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") applyFilters();
+                  }}
                 />
               </div>
 
-              {/* Rent/Buy Toggle */}
+              {/* All / Rent / Buy */}
               <div className="inline-flex rounded-3xl bg-slate-100 p-1.5 self-start xl:self-auto">
                 <button
                   type="button"
+                  onClick={() => setListingType("all")}
+                  className={`px-6 py-2.5 rounded-3xl text-sm font-extrabold transition ${
+                    listingType === "all"
+                      ? "bg-white text-blue-600 shadow-[0_10px_25px_rgba(0,0,0,0.08)]"
+                      : "text-slate-600 hover:text-slate-800"
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
                   onClick={() => setListingType("rent")}
-                  className={`px-7 py-2.5 rounded-3xl text-sm font-extrabold transition ${
+                  className={`px-6 py-2.5 rounded-3xl text-sm font-extrabold transition ${
                     listingType === "rent"
                       ? "bg-white text-blue-600 shadow-[0_10px_25px_rgba(0,0,0,0.08)]"
                       : "text-slate-600 hover:text-slate-800"
@@ -199,7 +290,7 @@ export default function Vehicles({ user }) {
                 <button
                   type="button"
                   onClick={() => setListingType("sale")}
-                  className={`px-7 py-2.5 rounded-3xl text-sm font-extrabold transition ${
+                  className={`px-6 py-2.5 rounded-3xl text-sm font-extrabold transition ${
                     listingType === "sale"
                       ? "bg-white text-blue-600 shadow-[0_10px_25px_rgba(0,0,0,0.08)]"
                       : "text-slate-600 hover:text-slate-800"
@@ -235,6 +326,9 @@ export default function Vehicles({ user }) {
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="Location"
                   className="w-full outline-none text-sm text-slate-700 placeholder:text-slate-400"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") applyFilters();
+                  }}
                 />
               </div>
             </div>
@@ -255,6 +349,7 @@ export default function Vehicles({ user }) {
               {visibleList.map((v) => {
                 const badge = v.type === "rent" ? "FOR RENT" : "FOR SALE";
                 const badgeCls = v.type === "rent" ? "bg-blue-600" : "bg-emerald-500";
+                const isCompared = compareIds.includes(v._id);
 
                 return (
                   <div
@@ -272,9 +367,7 @@ export default function Vehicles({ user }) {
                         className="h-full w-full object-cover"
                       />
 
-                      <div
-                        className={`absolute top-4 left-4 ${badgeCls} text-white text-xs font-extrabold px-3 py-1.5 rounded-full`}
-                      >
+                      <div className={`absolute top-4 left-4 ${badgeCls} text-white text-xs font-extrabold px-3 py-1.5 rounded-full`}>
                         {badge}
                       </div>
 
@@ -316,24 +409,65 @@ export default function Vehicles({ user }) {
                             {v.type === "rent" ? "Price per day" : "Total Price"}
                           </p>
                           <p className="text-xl font-extrabold text-slate-900">
-                            {v.type === "rent"
-                              ? formatNPR(v.pricePerDay || 0)
-                              : formatNPR(v.price || 0)}
+                            {v.type === "rent" ? formatNPR(v.pricePerDay || 0) : formatNPR(v.price || 0)}
                           </p>
                         </div>
 
-                        <button
-                          onClick={() => navigate(`/vehicles/${v._id}`, { state: { vehicle: v } })}
-                          className="rounded-2xl bg-blue-50 text-blue-700 px-5 py-2.5 text-sm font-bold hover:bg-blue-100 transition"
-                          type="button"
-                        >
-                          View Details
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleCompare(v._id)}
+                            className={`rounded-2xl px-4 py-2.5 text-sm font-extrabold transition ${
+                              isCompared
+                                ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                            }`}
+                            type="button"
+                          >
+                            {isCompared ? "Compared" : "Compare"}
+                          </button>
+
+                          <button
+                            onClick={() => navigate(`/vehicles/${v._id}`, { state: { vehicle: v } })}
+                            className="rounded-2xl bg-blue-50 text-blue-700 px-4 py-2.5 text-sm font-bold hover:bg-blue-100 transition"
+                            type="button"
+                          >
+                            View Details
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Sticky Compare Bar */}
+          {compareIds.length > 0 && (
+            <div className="fixed bottom-4 left-0 right-0 z-50 px-4">
+              <div className="max-w-6xl mx-auto rounded-[28px] bg-white/90 backdrop-blur border border-slate-200 shadow-[0_25px_70px_rgba(0,0,0,0.12)] p-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="text-sm font-extrabold text-slate-900">
+                    Compare ({compareIds.length}/{MAX_COMPARE})
+                  </div>
+                  <button
+                    onClick={clearCompare}
+                    className="text-sm font-bold text-slate-500 hover:text-slate-700"
+                    type="button"
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => navigate("/compare")}
+                  disabled={compareIds.length < 2}
+                  className="rounded-2xl bg-blue-600 px-6 py-3 text-sm font-extrabold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 transition disabled:opacity-60"
+                  type="button"
+                >
+                  Compare Now
+                </button>
+              </div>
             </div>
           )}
 

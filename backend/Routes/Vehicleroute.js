@@ -1,14 +1,12 @@
 // Routes/Vehicleroute.js
 import express from "express";
-import Vehicle from "../Models/Vehicle.js";
+import Vehicle from "../Models/vehicle.js";
 import { protect, authorize } from "../MiddleWare/AuthValidation.js";
 
 const router = express.Router();
 
 /**
- * ✅ NEW: GET /api/vehicles/stats/mine (BROKER ONLY)
- * - activeCount: not deleted
- * - deletedCount: soft deleted
+ *  NEW: GET /api/vehicles/stats/mine (BROKER ONLY)
  */
 router.get("/stats/mine", protect, authorize("broker"), async (req, res) => {
   try {
@@ -24,7 +22,7 @@ router.get("/stats/mine", protect, authorize("broker"), async (req, res) => {
   }
 });
 
-// ✅ GET /api/vehicles (PUBLIC) with filters + pagination
+//  GET /api/vehicles (PUBLIC) with filters + pagination
 router.get("/", async (req, res) => {
   try {
     const {

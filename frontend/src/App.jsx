@@ -15,12 +15,12 @@ import Login from "./Pages/Login";
 import Register from "./Pages/Register";
 import Unauthorized from "./Pages/Unauthorized";
 import Vehicles from "./Pages/Vehicles";
-import VehicleDetails from "./Pages/VehicleDetails"
+import VehicleDetails from "./Pages/Vehicledetails"
 import BrokerDashboard from "./Pages/BrokerDashboard";
 import AddVehicle from "./Pages/AddVehicle";
 import ManageVehicles from "./Pages/ManageVehicles";
 import EditVehicle from "./Pages/EditVehicle";
-
+import Compare from "./Pages/Compare";
 
 function Layout({ user, setUser }) {
   const location = useLocation();
@@ -45,6 +45,7 @@ function Layout({ user, setUser }) {
         {/* Vehicle pages */}
         <Route path="/vehicles" element={<Vehicles user={user} />} />
         <Route path="/vehicles/:id" element={<VehicleDetails user={user} />} />
+        <Route path="/compare" element={<Compare user={user} />} />
 
         {/*Broker dashboard*/}
         <Route path="/broker/dashboard" element={<BrokerDashboard user={user} setUser={setUser} />} />
