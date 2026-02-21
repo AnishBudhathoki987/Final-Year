@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   useLocation,
+  Navigate,
 } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -21,6 +22,7 @@ import AddVehicle from "./Pages/AddVehicle";
 import ManageVehicles from "./Pages/ManageVehicles";
 import EditVehicle from "./Pages/EditVehicle";
 import Compare from "./Pages/Compare";
+import Booking from "./Pages/Booking";
 
 function Layout({ user, setUser }) {
   const location = useLocation();
@@ -46,6 +48,19 @@ function Layout({ user, setUser }) {
         <Route path="/vehicles" element={<Vehicles user={user} />} />
         <Route path="/vehicles/:id" element={<VehicleDetails user={user} />} />
         <Route path="/compare" element={<Compare user={user} />} />
+
+        <Route
+          path="/book/:id"
+          element={
+          !user ? (
+          <Navigate to="/login" replace />
+          ) : user.role !== "user" ? (
+          <Navigate to="/unauthorized" replace />
+          ) : (
+          <Booking user={user} />
+          )
+          }
+          />
 
         {/*Broker dashboard*/}
         <Route path="/broker/dashboard" element={<BrokerDashboard user={user} setUser={setUser} />} />

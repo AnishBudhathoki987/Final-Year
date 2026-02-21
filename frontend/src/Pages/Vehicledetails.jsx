@@ -1,4 +1,4 @@
-// src/Pages/VehicleDetails.jsx
+// src/Pages/Vehicledetails.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
@@ -75,9 +75,17 @@ export default function VehicleDetails({ user }) {
   const priceLabel = isRent ? "Price per day" : "Total Price";
   const actionText = isRent ? "Book Now" : "Buy Now";
 
+  // ✅ UPDATED: Primary action navigates to booking page for rent
   const onPrimaryAction = () => {
     if (!user) return navigate("/login");
-    alert(`${actionText} clicked! (connect to booking/checkout later)`);
+
+    if (isRent) {
+      // go to booking form page
+      return navigate(`/book/${vehicle._id}`);
+    }
+
+    // sale flow later
+    alert("Checkout for buying will be added in next sprint.");
   };
 
   const onMessage = () => {
@@ -162,7 +170,9 @@ export default function VehicleDetails({ user }) {
               <div className="relative h-[360px]">
                 <img src={images[selectedImg]} alt={vehicle.title} className="h-full w-full object-cover" />
 
-                <div className={`absolute top-5 left-5 ${badgeClass} text-white text-xs font-extrabold px-3 py-1.5 rounded-full`}>
+                <div
+                  className={`absolute top-5 left-5 ${badgeClass} text-white text-xs font-extrabold px-3 py-1.5 rounded-full`}
+                >
                   {badgeText}
                 </div>
 

@@ -7,13 +7,13 @@ import authRoutes from "./Routes/AuthRouter.js";
 import { connectDB } from "./Config/db.js";
 import vehicleRoutes from "./Routes/Vehicleroute.js";
 import uploadRoutes from "./Routes/Uploadroute.js";
+import bookingRoutes from "./Routes/Bookingroutes.js";
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 
-// ✅ CORS (frontend vite)
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -25,14 +25,14 @@ app.get("/", (req, res) => {
   res.send("Server is running!");
 });
 
-// ✅ serve uploaded images
+// serve uploads
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
+// ROUTES
 app.use("/api/users", authRoutes);
 app.use("/api/vehicles", vehicleRoutes);
-
-// ✅ image upload endpoint
 app.use("/api/upload", uploadRoutes);
+app.use("/api/bookings", bookingRoutes);
 
 connectDB();
 
