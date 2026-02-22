@@ -23,6 +23,7 @@ import ManageVehicles from "./Pages/ManageVehicles";
 import EditVehicle from "./Pages/EditVehicle";
 import Compare from "./Pages/Compare";
 import Booking from "./Pages/Booking";
+import MyBookings from "./Pages/MyBookings";
 
 function Layout({ user, setUser }) {
   const location = useLocation();
@@ -61,6 +62,19 @@ function Layout({ user, setUser }) {
           )
           }
           />
+
+          <Route
+            path="/my-bookings"
+            element={
+            !user ? (
+            <Navigate to="/login" replace />
+            ) : user.role !== "user" ? (
+            <Navigate to="/unauthorized" replace />
+            ) : (
+            <MyBookings user={user} />
+            )
+            }
+            />
 
         {/*Broker dashboard*/}
         <Route path="/broker/dashboard" element={<BrokerDashboard user={user} setUser={setUser} />} />
