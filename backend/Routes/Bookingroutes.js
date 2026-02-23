@@ -18,12 +18,6 @@ const diffDays = (start, end) => {
   return Math.ceil(ms / (1000 * 60 * 60 * 24));
 };
 
-/* ---------------- Debug Ping ---------------- */
-// Test: http://localhost:5000/api/bookings/ping
-router.get("/ping", (req, res) => {
-  res.json({ ok: true, route: "/api/bookings/ping" });
-});
-
 /* ---------------- 1) CHECK AVAILABILITY */
 router.get("/check", async (req, res) => {
   try {
