@@ -7,7 +7,7 @@ import {
   FaTachometerAlt,
   FaPlus,
   FaCarSide,
-  FaUserCircle,
+  FaClipboardList,
   FaSignOutAlt,
   FaCheckCircle,
   FaEdit,
@@ -149,7 +149,7 @@ export default function BrokerDashboard({ user, setUser }) {
             <SideLink icon={<FaTachometerAlt />} label="Dashboard" to="/broker/dashboard" active />
             <SideLink icon={<FaPlus />} label="Add Vehicle" to="/broker/add-vehicle" />
             <SideLink icon={<FaCarSide />} label="My Vehicles" to="/broker/my-vehicles" />
-            <SideLink icon={<FaUserCircle />} label="Profile" to="/broker/profile" />
+            <SideLink icon={<FaClipboardList />} label="Orders" to="/broker/orders" />
           </nav>
 
           <div className="mt-auto p-4">

@@ -27,6 +27,7 @@ import UserDashboard from "./Pages/UserDashboard";
 import MyBookings from "./Pages/MyBookings";
 import Purchase from "./Pages/Purchase";
 import MyPurchases from "./Pages/MyPurchase";
+import BrokerOrder from "./Pages/BrokerOrder";
 
 function Layout({ user, setUser }) {
   const location = useLocation();
@@ -53,6 +54,7 @@ function Layout({ user, setUser }) {
         <Route path="/vehicles" element={<Vehicles user={user} />} />
         <Route path="/vehicles/:id" element={<VehicleDetails user={user} />} />
         <Route path="/compare" element={<Compare user={user} />} />
+        <Route path="/broker/orders" element={<BrokerOrder user={user} />} />
 
         <Route
           path="/book/:id"

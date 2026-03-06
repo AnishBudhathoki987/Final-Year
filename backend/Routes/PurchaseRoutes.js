@@ -25,7 +25,6 @@ router.post("/", protect, authorize("user"), async (req, res) => {
       return res.status(400).json({ message: "This vehicle is not for sale" });
     }
 
-    // prevent duplicate purchase (optional but recommended)
     const existing = await Purchase.findOne({
       vehicle: vehicleId,
       user: req.user._id,
@@ -47,7 +46,7 @@ router.post("/", protect, authorize("user"), async (req, res) => {
     });
 
     const populated = await Purchase.findById(purchase._id)
-      .populate("vehicle", "title location images price type")
+      .populate("vehicle", "title location images price type createdBy isAvailable status")
       .populate("user", "username email");
 
     return res.status(201).json(populated);
@@ -58,7 +57,7 @@ router.post("/", protect, authorize("user"), async (req, res) => {
 });
 
 /* -------------------------------------------
-  2) MY PURCHASES (HISTORY) - ONLY USER
+  2) MY PURCHASES (USER)
 ------------------------------------------- */
 router.get("/mine", protect, authorize("user"), async (req, res) => {
   try {
@@ -74,8 +73,95 @@ router.get("/mine", protect, authorize("user"), async (req, res) => {
 });
 
 /* -------------------------------------------
-  3) CONFIRM PURCHASE (ADMIN OR BROKER later)
-  For now: keep simple -> user confirms "I accept"
+  3) BROKER PURCHASES
+------------------------------------------- */
+router.get("/broker/mine", protect, authorize("broker"), async (req, res) => {
+  try {
+    const purchases = await Purchase.find()
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "vehicle",
+        match: { createdBy: req.user._id, type: "sale" },
+        select: "title location images price type createdBy isAvailable status",
+      })
+      .populate("user", "username email");
+
+    const filtered = purchases.filter((p) => p.vehicle);
+
+    return res.json({ purchases: filtered });
+  } catch (err) {
+    console.log("Broker purchases error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+/* -------------------------------------------
+  4) BROKER CONFIRM PURCHASE
+------------------------------------------- */
+router.put("/:id/broker-confirm", protect, authorize("broker"), async (req, res) => {
+  try {
+    const purchase = await Purchase.findById(req.params.id).populate("vehicle");
+
+    if (!purchase) {
+      return res.status(404).json({ message: "Purchase not found" });
+    }
+
+    if (!purchase.vehicle) {
+      return res.status(404).json({ message: "Vehicle not found" });
+    }
+
+    if (String(purchase.vehicle.createdBy) !== String(req.user._id)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    purchase.status = "confirmed";
+    await purchase.save();
+
+    const vehicle = await Vehicle.findById(purchase.vehicle._id);
+    if (vehicle) {
+      vehicle.isAvailable = false;
+      vehicle.status = "hidden";
+      await vehicle.save();
+    }
+
+    return res.json({ message: "Purchase confirmed and vehicle marked unavailable" });
+  } catch (err) {
+    console.log("Broker confirm purchase error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+/* -------------------------------------------
+  5) BROKER CANCEL PURCHASE
+------------------------------------------- */
+router.put("/:id/broker-cancel", protect, authorize("broker"), async (req, res) => {
+  try {
+    const purchase = await Purchase.findById(req.params.id).populate("vehicle");
+
+    if (!purchase) {
+      return res.status(404).json({ message: "Purchase not found" });
+    }
+
+    if (!purchase.vehicle) {
+      return res.status(404).json({ message: "Vehicle not found" });
+    }
+
+    if (String(purchase.vehicle.createdBy) !== String(req.user._id)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    purchase.status = "cancelled";
+    await purchase.save();
+
+    return res.json({ message: "Purchase cancelled" });
+  } catch (err) {
+    console.log("Broker cancel purchase error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+/* -------------------------------------------
+  6) USER CONFIRM PURCHASE
 ------------------------------------------- */
 router.put("/:id/confirm", protect, authorize("user"), async (req, res) => {
   try {
@@ -97,7 +183,7 @@ router.put("/:id/confirm", protect, authorize("user"), async (req, res) => {
 });
 
 /* -------------------------------------------
-  4) CANCEL PURCHASE - ONLY USER
+  7) USER CANCEL PURCHASE
 ------------------------------------------- */
 router.put("/:id/cancel", protect, authorize("user"), async (req, res) => {
   try {

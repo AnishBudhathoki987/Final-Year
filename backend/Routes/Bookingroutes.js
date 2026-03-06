@@ -1,4 +1,3 @@
-// Routes/Bookingroutes.js
 import express from "express";
 import Booking from "../Models/Booking.js";
 import Vehicle from "../Models/vehicle.js";
@@ -18,7 +17,7 @@ const diffDays = (start, end) => {
   return Math.ceil(ms / (1000 * 60 * 60 * 24));
 };
 
-/* ---------------- 1) CHECK AVAILABILITY */
+/* ---------------- 1) CHECK AVAILABILITY ---------------- */
 router.get("/check", async (req, res) => {
   try {
     const { vehicleId, startDate, endDate } = req.query;
@@ -36,7 +35,6 @@ router.get("/check", async (req, res) => {
       return res.status(400).json({ message: "Invalid date range" });
     }
 
-    // Optional: also ensure vehicle exists
     const vehicle = await Vehicle.findById(vehicleId);
     if (!vehicle || vehicle.isDeleted || vehicle.status !== "active") {
       return res.status(404).json({ message: "Vehicle not found" });
@@ -46,7 +44,6 @@ router.get("/check", async (req, res) => {
       return res.status(400).json({ message: "This vehicle is not for rent" });
     }
 
-    // Check overlapping bookings
     const overlap = await Booking.findOne({
       vehicle: vehicleId,
       status: { $ne: "cancelled" },
@@ -92,7 +89,6 @@ router.post("/", protect, authorize("user"), async (req, res) => {
       return res.status(400).json({ message: "Vehicle is not available" });
     }
 
-    // overlap
     const overlap = await Booking.findOne({
       vehicle: vehicleId,
       status: { $ne: "cancelled" },
@@ -127,7 +123,7 @@ router.post("/", protect, authorize("user"), async (req, res) => {
 
     const populated = await Booking.findById(booking._id)
       .populate("vehicle", "title location images pricePerDay")
-      .populate("user", "name email");
+      .populate("user", "username email");
 
     return res.status(201).json(populated);
   } catch (err) {
@@ -166,6 +162,27 @@ router.put("/:id/cancel", protect, authorize("user"), async (req, res) => {
     return res.json({ message: "Booking cancelled" });
   } catch (err) {
     console.log("Cancel booking error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+/* ---------------- 5) BROKER BOOKINGS ---------------- */
+router.get("/broker/mine", protect, authorize("broker"), async (req, res) => {
+  try {
+    const bookings = await Booking.find()
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "vehicle",
+        match: { createdBy: req.user._id, type: "rent" },
+        select: "title location images pricePerDay createdBy type",
+      })
+      .populate("user", "username email");
+
+    const filtered = bookings.filter((b) => b.vehicle);
+
+    return res.json({ bookings: filtered });
+  } catch (err) {
+    console.log("Broker bookings error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 });
