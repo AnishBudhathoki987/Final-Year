@@ -16,24 +16,29 @@ import Login from "./Pages/Login";
 import Register from "./Pages/Register";
 import Unauthorized from "./Pages/Unauthorized";
 import Vehicles from "./Pages/Vehicles";
-import VehicleDetails from "./Pages/Vehicledetails"
+import VehicleDetails from "./Pages/Vehicledetails";
 import BrokerDashboard from "./Pages/BrokerDashboard";
 import AddVehicle from "./Pages/AddVehicle";
 import ManageVehicles from "./Pages/ManageVehicles";
 import EditVehicle from "./Pages/EditVehicle";
 import Compare from "./Pages/Compare";
 import Booking from "./Pages/Booking";
+import UserDashboard from "./Pages/UserDashboard";
 import MyBookings from "./Pages/MyBookings";
+import Purchase from "./Pages/Purchase";
+import MyPurchases from "./Pages/MyPurchase";
 
 function Layout({ user, setUser }) {
   const location = useLocation();
 
-  // Hide navbar on login & register and brokerdashboard
   const hideNavbar =
-  ["/login", "/register"].includes(location.pathname) ||
-  location.pathname.startsWith("/broker") ||
-  location.pathname.startsWith("/admin");
-  
+    ["/login", "/register"].includes(location.pathname) ||
+    location.pathname.startsWith("/broker") ||
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/book/") ||
+    location.pathname.startsWith("/purchase/") ||
+    location.pathname.startsWith("/my-purchases") ||
+    location.pathname.startsWith("/user/dashboard");
 
   return (
     <>
@@ -45,7 +50,6 @@ function Layout({ user, setUser }) {
         <Route path="/register" element={<Register />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
 
-        {/* Vehicle pages */}
         <Route path="/vehicles" element={<Vehicles user={user} />} />
         <Route path="/vehicles/:id" element={<VehicleDetails user={user} />} />
         <Route path="/compare" element={<Compare user={user} />} />
@@ -53,30 +57,68 @@ function Layout({ user, setUser }) {
         <Route
           path="/book/:id"
           element={
-          !user ? (
-          <Navigate to="/login" replace />
-          ) : user.role !== "user" ? (
-          <Navigate to="/unauthorized" replace />
-          ) : (
-          <Booking user={user} />
-          )
-          }
-          />
-
-          <Route
-            path="/my-bookings"
-            element={
             !user ? (
-            <Navigate to="/login" replace />
+              <Navigate to="/login" replace />
             ) : user.role !== "user" ? (
-            <Navigate to="/unauthorized" replace />
+              <Navigate to="/unauthorized" replace />
             ) : (
-            <MyBookings user={user} />
+              <Booking user={user} />
             )
-            }
-            />
+          }
+        />
 
-        {/*Broker dashboard*/}
+        <Route
+          path="/my-bookings"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : user.role !== "user" ? (
+              <Navigate to="/unauthorized" replace />
+            ) : (
+              <MyBookings user={user} />
+            )
+          }
+        />
+
+        <Route
+          path="/purchase/:id"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : user.role !== "user" ? (
+              <Navigate to="/unauthorized" replace />
+            ) : (
+              <Purchase user={user} />
+            )
+          }
+        />
+
+        <Route
+          path="/my-purchases"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : user.role !== "user" ? (
+              <Navigate to="/unauthorized" replace />
+            ) : (
+              <MyPurchases user={user} />
+            )
+          }
+        />
+
+        <Route
+          path="/user/dashboard"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : user.role !== "user" ? (
+              <Navigate to="/unauthorized" replace />
+            ) : (
+              <UserDashboard user={user} setUser={setUser} />
+            )
+          }
+        />
+
         <Route path="/broker/dashboard" element={<BrokerDashboard user={user} setUser={setUser} />} />
         <Route path="/broker/add-vehicle" element={<AddVehicle user={user} />} />
         <Route path="/broker/my-vehicles" element={<ManageVehicles user={user} />} />

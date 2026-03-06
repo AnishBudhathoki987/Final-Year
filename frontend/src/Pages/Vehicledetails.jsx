@@ -76,22 +76,20 @@ export default function VehicleDetails({ user }) {
   const actionText = isRent ? "Book Now" : "Buy Now";
 
   // ✅ UPDATED: Primary action navigates to booking page for rent
-  const onPrimaryAction = () => {
-    if (!user) return navigate("/login");
+  // ✅ Primary action
+      const onPrimaryAction = () => {
+      if (!user) return navigate("/login");
 
-    if (isRent) {
-      // go to booking form page
+      if (isRent) {
       return navigate(`/book/${vehicle._id}`);
-    }
+       }
 
-    // sale flow later
-    alert("Checkout for buying will be added in next sprint.");
-  };
-
-  const onMessage = () => {
-    if (!user) return navigate("/login");
-    alert("Message clicked! (connect to chat later)");
-  };
+      return navigate(`/purchase/${vehicle._id}`);
+      };
+      const onMessage = () => {
+      if (!user) return navigate("/login");
+      alert("Message clicked! (connect to chat later)");
+      };
 
   const onCall = () => alert("Call clicked! (connect to broker contact later)");
 
