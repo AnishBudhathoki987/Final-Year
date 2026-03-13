@@ -86,10 +86,17 @@ export default function VehicleDetails({ user }) {
 
       return navigate(`/purchase/${vehicle._id}`);
       };
-      const onMessage = () => {
-      if (!user) return navigate("/login");
-      alert("Message clicked! (connect to chat later)");
-      };
+     const onMessage = () => {
+     if (!user) return navigate("/login");
+
+     const brokerId = vehicle?.createdBy?._id || vehicle?.createdBy;
+
+     if (!brokerId) {
+    return alert("Broker not found.");
+    }
+
+    navigate(`/chat/${brokerId}`);
+    };
 
   const onCall = () => alert("Call clicked! (connect to broker contact later)");
 

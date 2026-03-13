@@ -9,6 +9,7 @@ import vehicleRoutes from "./Routes/Vehicleroute.js";
 import uploadRoutes from "./Routes/Uploadroute.js";
 import bookingRoutes from "./Routes/Bookingroutes.js";
 import purchaseRoutes from "./Routes/PurchaseRoutes.js";
+import chatRoutes from "./Routes/ChatRoutes.js";
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/purchases", purchaseRoutes);
+app.use("/api/chats", chatRoutes);
 
 connectDB();
 

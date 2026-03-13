@@ -28,6 +28,7 @@ import MyBookings from "./Pages/MyBookings";
 import Purchase from "./Pages/Purchase";
 import MyPurchases from "./Pages/MyPurchase";
 import BrokerOrder from "./Pages/BrokerOrder";
+import Chat from "./Pages/Chat";
 
 function Layout({ user, setUser }) {
   const location = useLocation();
@@ -120,6 +121,17 @@ function Layout({ user, setUser }) {
             )
           }
         />
+
+        <Route
+          path="/chat/:brokerId"
+          element={
+          !user ? (
+          <Navigate to="/login" replace />
+          ) : (
+          <Chat user={user} />
+           )
+          }
+          />
 
         <Route path="/broker/dashboard" element={<BrokerDashboard user={user} setUser={setUser} />} />
         <Route path="/broker/add-vehicle" element={<AddVehicle user={user} />} />
