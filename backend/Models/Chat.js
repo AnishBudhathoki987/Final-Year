@@ -1,17 +1,41 @@
 import mongoose from "mongoose";
 
-const chatMessageSchema = new mongoose.Schema(
+const messageSchema = new mongoose.Schema(
   {
-    senderId: { type: mongoose.Schema.Types.ObjectId, ref: "Register_fyp", required: true },
-    receiverId: { type: mongoose.Schema.Types.ObjectId, ref: "Register_fyp", required: true },
-    message: { type: String },
-    image: {
-      data: Buffer,
-      contentType: String,
-      name: String
+    senderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    text: {
+      type: String,
+      required: true,
+      trim: true,
     },
   },
   { timestamps: true }
 );
 
-export default mongoose.model("ChatMessage", chatMessageSchema);
+const chatSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    broker: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    messages: [messageSchema],
+  },
+  { timestamps: true }
+);
+
+// one chat between one user and one broker
+chatSchema.index({ user: 1, broker: 1 }, { unique: true });
+
+export default mongoose.model("Chat", chatSchema);
