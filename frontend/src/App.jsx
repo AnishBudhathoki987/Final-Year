@@ -29,6 +29,8 @@ import Purchase from "./Pages/Purchase";
 import MyPurchases from "./Pages/MyPurchase";
 import BrokerOrder from "./Pages/BrokerOrder";
 import Chat from "./Pages/Chat";
+import BrokerMessages from "./Pages/BrokerMessage";
+import BrokerChat from "./Pages/BrokerChat";
 
 function Layout({ user, setUser }) {
   const location = useLocation();
@@ -138,6 +140,8 @@ function Layout({ user, setUser }) {
         <Route path="/broker/add-vehicle" element={<AddVehicle user={user} />} />
         <Route path="/broker/my-vehicles" element={<ManageVehicles user={user} />} />
         <Route path="/broker/edit-vehicle/:id" element={<EditVehicle user={user} />} />
+        <Route path="/broker/messages" element={<BrokerMessages user={user} />} />
+        <Route path="/broker/chat/:chatId" element={<BrokerChat user={user} />} />
       </Routes>
     </>
   );
