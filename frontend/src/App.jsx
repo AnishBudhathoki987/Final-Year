@@ -40,7 +40,8 @@ function Layout({ user, setUser }) {
     location.pathname.startsWith("/book/") ||
     location.pathname.startsWith("/purchase/") ||
     location.pathname.startsWith("/my-purchases") ||
-    location.pathname.startsWith("/user/dashboard");
+    location.pathname.startsWith("/user/dashboard")
+    location.pathname.startsWith("/chat/");
 
   return (
     <>

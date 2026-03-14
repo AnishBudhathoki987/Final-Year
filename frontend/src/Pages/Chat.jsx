@@ -92,13 +92,13 @@ export default function Chat({ user }) {
   return (
     <div className="min-h-screen bg-[#f6f7fb]">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
-          type="button"
-        >
-          <FaArrowLeft /> Back
-        </button>
+       <button
+         onClick={() => navigate(-1)}
+         className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
+         type="button"
+            >
+            <FaArrowLeft /> Back
+            </button>
 
         <div className="mt-6 rounded-3xl bg-white border border-slate-100 shadow-[0_25px_70px_rgba(0,0,0,0.06)] overflow-hidden">
           <div className="border-b border-slate-100 px-6 py-4">
