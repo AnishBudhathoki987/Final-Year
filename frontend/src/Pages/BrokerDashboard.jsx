@@ -1,4 +1,3 @@
-// src/Pages/BrokerDashboard.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -18,7 +17,6 @@ import {
 export default function BrokerDashboard({ user, setUser }) {
   const navigate = useNavigate();
 
-  // ✅ Guard: only broker can access
   useEffect(() => {
     if (!user) return navigate("/login");
     if (user.role !== "broker") return navigate("/unauthorized");
@@ -28,9 +26,8 @@ export default function BrokerDashboard({ user, setUser }) {
 
   const [loading, setLoading] = useState(true);
   const [myVehicles, setMyVehicles] = useState([]);
-
-  // ✅ NEW: stats from backend
   const [statsApi, setStatsApi] = useState({ activeCount: 0, deletedCount: 0 });
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   const loadMyVehicles = async () => {
     setLoading(true);
@@ -61,15 +58,33 @@ export default function BrokerDashboard({ user, setUser }) {
     }
   };
 
-  // ✅ Fetch broker vehicles + stats
+  const loadUnreadMessages = async () => {
+    try {
+      const res = await axios.get("/api/chats/broker/mine/all", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const chats = res.data?.chats || [];
+      const totalUnread = chats.reduce(
+        (sum, chat) => sum + Number(chat.unreadForBroker || 0),
+        0
+      );
+
+      setUnreadMessages(totalUnread);
+    } catch (err) {
+      console.log("Load unread messages failed:", err);
+      setUnreadMessages(0);
+    }
+  };
+
   useEffect(() => {
     if (token && user?.role === "broker") {
       loadMyVehicles();
       loadStats();
+      loadUnreadMessages();
     } else {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
 
   const stats = useMemo(() => {
@@ -105,10 +120,8 @@ export default function BrokerDashboard({ user, setUser }) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // remove from UI list
       setMyVehicles((prev) => prev.filter((v) => v._id !== id));
 
-      // ✅ update stats instantly
       setStatsApi((p) => ({
         activeCount: Math.max(0, Number(p.activeCount || 0) - 1),
         deletedCount: Number(p.deletedCount || 0) + 1,
@@ -122,7 +135,6 @@ export default function BrokerDashboard({ user, setUser }) {
   return (
     <div className="min-h-screen bg-[#f6f7fb]">
       <div className="max-w-7xl mx-auto px-4 py-8 flex gap-8">
-        {/* ===================== SIDEBAR ===================== */}
         <aside className="hidden md:flex w-72 flex-col rounded-3xl bg-white border border-slate-100 shadow-[0_25px_70px_rgba(0,0,0,0.06)] overflow-hidden">
           <div className="p-6 border-b border-slate-100">
             <div className="flex items-center gap-3">
@@ -151,7 +163,22 @@ export default function BrokerDashboard({ user, setUser }) {
             <SideLink icon={<FaPlus />} label="Add Vehicle" to="/broker/add-vehicle" />
             <SideLink icon={<FaCarSide />} label="My Vehicles" to="/broker/my-vehicles" />
             <SideLink icon={<FaClipboardList />} label="Orders" to="/broker/orders" />
-            <SideLink icon={<FaComments />} label="Messages" to="/broker/messages" />
+
+            <Link
+              to="/broker/messages"
+              className="w-full inline-flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
+            >
+              <span className="inline-flex items-center gap-3">
+                <FaComments />
+                Messages
+              </span>
+
+              {unreadMessages > 0 && (
+                <span className="min-w-[24px] h-6 px-2 rounded-full bg-red-500 text-white text-xs font-extrabold grid place-items-center">
+                  {unreadMessages}
+                </span>
+              )}
+            </Link>
           </nav>
 
           <div className="mt-auto p-4">
@@ -165,9 +192,7 @@ export default function BrokerDashboard({ user, setUser }) {
           </div>
         </aside>
 
-        {/* ===================== MAIN ===================== */}
         <main className="flex-1">
-          {/* Top header */}
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900">
@@ -193,14 +218,12 @@ export default function BrokerDashboard({ user, setUser }) {
             </div>
           </div>
 
-          {/* Stat cards (UPDATED) */}
           <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <StatCard icon={<FaCarSide />} label="TOTAL VEHICLES" value={stats.total} />
             <StatCard icon={<FaCheckCircle />} label="ACTIVE LISTINGS" value={statsApi.activeCount} />
             <StatCard icon={<FaTrash />} label="DELETED LISTINGS" value={statsApi.deletedCount} />
           </div>
 
-          {/* Primary actions */}
           <div className="mt-8 flex flex-wrap gap-4">
             <button
               onClick={() => navigate("/broker/add-vehicle")}
@@ -222,6 +245,7 @@ export default function BrokerDashboard({ user, setUser }) {
               onClick={() => {
                 loadMyVehicles();
                 loadStats();
+                loadUnreadMessages();
               }}
               className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
               type="button"
@@ -230,7 +254,6 @@ export default function BrokerDashboard({ user, setUser }) {
             </button>
           </div>
 
-          {/* Recent listings table */}
           <div className="mt-10 rounded-3xl bg-white border border-slate-100 shadow-[0_25px_70px_rgba(0,0,0,0.06)] overflow-hidden">
             <div className="p-6 flex items-center justify-between">
               <h2 className="text-lg font-extrabold text-slate-900">Recent Listings</h2>
@@ -362,7 +385,6 @@ export default function BrokerDashboard({ user, setUser }) {
             </div>
           </div>
 
-          {/* Mobile quick links */}
           <div className="md:hidden mt-8 grid grid-cols-2 gap-4">
             <QuickBtn to="/" icon={<FaHome />} label="Website" />
             <QuickBtn to="/broker/add-vehicle" icon={<FaPlus />} label="Add Vehicle" />
@@ -380,8 +402,6 @@ export default function BrokerDashboard({ user, setUser }) {
     </div>
   );
 }
-
-/* ---------------- small UI helpers ---------------- */
 
 function SideLink({ to, icon, label, active = false }) {
   return (

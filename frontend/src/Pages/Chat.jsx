@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { FaArrowLeft, FaPaperPlane } from "react-icons/fa";
+import { io } from "socket.io-client";
+
+const socket = io("http://localhost:5000");
 
 export default function Chat({ user }) {
   const navigate = useNavigate();
   const { brokerId } = useParams();
+  const bottomRef = useRef(null);
 
   const [chat, setChat] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -55,6 +59,79 @@ export default function Chat({ user }) {
     }
   }, [brokerId, user, navigate]);
 
+  useEffect(() => {
+    const markAsRead = async () => {
+      if (!chat?._id) return;
+
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        await axios.put(
+          `/api/chats/${chat._id}/read`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+      } catch (err) {
+        console.log("Mark read failed:", err);
+      }
+    };
+
+    markAsRead();
+  }, [chat?._id]);
+
+  useEffect(() => {
+    if (!chat?._id) return;
+
+    socket.emit("joinChat", chat._id);
+
+    const handleReceiveMessage = async (message) => {
+      const senderId =
+        typeof message.senderId === "object"
+          ? message.senderId?._id
+          : message.senderId;
+
+      const currentUserId = user?._id || user?.id;
+
+      if (String(senderId) === String(currentUserId)) return;
+
+      setChat((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: [...prev.messages, message],
+        };
+      });
+
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          await axios.put(
+            `/api/chats/${chat._id}/read`,
+            {},
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+        } catch (err) {
+          console.log("Auto mark read failed:", err);
+        }
+      }
+    };
+
+    socket.on("receiveMessage", handleReceiveMessage);
+
+    return () => {
+      socket.off("receiveMessage", handleReceiveMessage);
+    };
+  }, [chat?._id, user]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chat?.messages]);
+
   const sendMessage = async () => {
     if (!text.trim() || !chat?._id) return;
 
@@ -72,8 +149,19 @@ export default function Chat({ user }) {
         }
       );
 
-      setChat(res.data);
+      const updatedChat = res.data;
+      const latestMessage =
+        updatedChat?.messages?.[updatedChat.messages.length - 1];
+
+      setChat(updatedChat);
       setText("");
+
+      if (latestMessage) {
+        socket.emit("sendMessage", {
+          chatId: chat._id,
+          message: latestMessage,
+        });
+      }
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to send message.");
     }
@@ -89,8 +177,7 @@ export default function Chat({ user }) {
     );
   }
 
-  const brokerName =
-    chat?.broker?.username || chat?.broker?.name || "Broker";
+  const brokerName = chat?.broker?.username || chat?.broker?.name || "Broker";
 
   return (
     <div className="min-h-screen bg-[#f6f7fb]">
@@ -119,7 +206,7 @@ export default function Chat({ user }) {
             </div>
           )}
 
-          <div className="h-[420px] overflow-y-auto px-6 py-5 space-y-4 bg-[#f8fafc] flex flex-col">
+          <div className="h-[420px] overflow-y-auto px-6 py-5 space-y-4 bg-[#f8fafc] flex flex-col scroll-smooth">
             {chat?.messages?.length > 0 ? (
               chat.messages.map((msg) => {
                 const senderId =
@@ -157,6 +244,7 @@ export default function Chat({ user }) {
             ) : (
               <p className="text-sm text-slate-400">No messages yet.</p>
             )}
+            <div ref={bottomRef} />
           </div>
 
           <div className="border-t border-slate-100 p-4 flex items-center gap-3">

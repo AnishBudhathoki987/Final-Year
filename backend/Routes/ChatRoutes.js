@@ -34,6 +34,8 @@ router.post("/start", protect, authorize("user"), async (req, res) => {
         user: req.user._id,
         broker: brokerId,
         messages: [],
+        unreadForBroker: 0,
+        unreadForUser: 0,
       });
 
       chat = await Chat.findById(chat._id)
@@ -108,6 +110,15 @@ router.post("/:chatId/message", protect, async (req, res) => {
       text: text.trim(),
     });
 
+    // unread count update
+    if (isUser) {
+      chat.unreadForBroker += 1;
+    }
+
+    if (isBroker) {
+      chat.unreadForUser += 1;
+    }
+
     await chat.save();
 
     const updatedChat = await Chat.findById(chat._id)
@@ -123,7 +134,42 @@ router.post("/:chatId/message", protect, async (req, res) => {
 });
 
 /* -------------------------------------------
-   4) USER: MY CHATS
+   4) MARK CHAT AS READ
+------------------------------------------- */
+router.put("/:chatId/read", protect, async (req, res) => {
+  try {
+    const chat = await Chat.findById(req.params.chatId);
+
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+
+    const isUser = String(chat.user) === String(req.user._id);
+    const isBroker = String(chat.broker) === String(req.user._id);
+
+    if (!isUser && !isBroker) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    if (isBroker) {
+      chat.unreadForBroker = 0;
+    }
+
+    if (isUser) {
+      chat.unreadForUser = 0;
+    }
+
+    await chat.save();
+
+    return res.json({ message: "Chat marked as read" });
+  } catch (err) {
+    console.log("Read chat error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+/* -------------------------------------------
+   5) USER: MY CHATS
 ------------------------------------------- */
 router.get("/user/mine/all", protect, authorize("user"), async (req, res) => {
   try {
@@ -141,7 +187,7 @@ router.get("/user/mine/all", protect, authorize("user"), async (req, res) => {
 });
 
 /* -------------------------------------------
-   5) BROKER: MY CHATS
+   6) BROKER: MY CHATS
 ------------------------------------------- */
 router.get("/broker/mine/all", protect, authorize("broker"), async (req, res) => {
   try {

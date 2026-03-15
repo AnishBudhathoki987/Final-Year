@@ -31,6 +31,16 @@ const chatSchema = new mongoose.Schema(
       index: true,
     },
     messages: [messageSchema],
+
+    unreadForBroker: {
+      type: Number,
+      default: 0,
+    },
+
+    unreadForUser: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
