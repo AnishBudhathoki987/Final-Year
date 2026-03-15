@@ -89,21 +89,24 @@ export default function Chat({ user }) {
     );
   }
 
+  const brokerName =
+    chat?.broker?.username || chat?.broker?.name || "Broker";
+
   return (
     <div className="min-h-screen bg-[#f6f7fb]">
       <div className="max-w-4xl mx-auto px-4 py-8">
-       <button
-         onClick={() => navigate(-1)}
-         className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
-         type="button"
-            >
-            <FaArrowLeft /> Back
-            </button>
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
+          type="button"
+        >
+          <FaArrowLeft /> Back
+        </button>
 
         <div className="mt-6 rounded-3xl bg-white border border-slate-100 shadow-[0_25px_70px_rgba(0,0,0,0.06)] overflow-hidden">
           <div className="border-b border-slate-100 px-6 py-4">
             <h1 className="text-xl font-extrabold text-slate-900">
-              Chat with Broker
+              Chat with {brokerName}
             </h1>
             <p className="text-sm text-slate-500">
               Send messages directly here.
@@ -116,11 +119,16 @@ export default function Chat({ user }) {
             </div>
           )}
 
-          <div className="h-[420px] overflow-y-auto px-6 py-5 space-y-4 bg-[#f8fafc]">
+          <div className="h-[420px] overflow-y-auto px-6 py-5 space-y-4 bg-[#f8fafc] flex flex-col">
             {chat?.messages?.length > 0 ? (
               chat.messages.map((msg) => {
-                const mine =
-                  String(msg.senderId?._id || msg.senderId) === String(user?._id);
+                const senderId =
+                  typeof msg.senderId === "object"
+                    ? msg.senderId?._id
+                    : msg.senderId;
+
+                const currentUserId = user?._id || user?.id;
+                const mine = String(senderId) === String(currentUserId);
 
                 return (
                   <div
@@ -130,8 +138,8 @@ export default function Chat({ user }) {
                     <div
                       className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
                         mine
-                          ? "bg-blue-600 text-white"
-                          : "bg-white text-slate-700 border border-slate-200"
+                          ? "bg-blue-600 text-white rounded-br-md"
+                          : "bg-white text-slate-700 border border-slate-200 rounded-bl-md"
                       }`}
                     >
                       <p>{msg.text}</p>
