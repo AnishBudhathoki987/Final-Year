@@ -16,6 +16,9 @@ import {
 
 const fmt = (n) => `NPR ${Number(n || 0).toLocaleString("en-US")}`;
 
+const MAX_BOOKING_HISTORY = 10;
+const BOOKINGS_PER_PAGE = 4;
+
 function BookingStatusPill({ status }) {
   const s = (status || "").toLowerCase();
 
@@ -78,6 +81,8 @@ export default function BrokerOrders({ user }) {
   const [purchases, setPurchases] = useState([]);
   const [error, setError] = useState("");
 
+  const [bookingPage, setBookingPage] = useState(1);
+
   const fetchData = async () => {
     if (!token) {
       navigate("/login");
@@ -99,6 +104,7 @@ export default function BrokerOrders({ user }) {
 
       setBookings(bookingsRes.data?.bookings || []);
       setPurchases(purchasesRes.data?.purchases || []);
+      setBookingPage(1);
     } catch (e) {
       setError(e?.response?.data?.message || "Failed to load broker orders.");
     } finally {
@@ -116,12 +122,27 @@ export default function BrokerOrders({ user }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // latest 10 only
+  const latestTenBookings = useMemo(() => {
+    return [...bookings].slice(0, MAX_BOOKING_HISTORY);
+  }, [bookings]);
+
+  const totalBookingPages = useMemo(() => {
+    return Math.ceil(latestTenBookings.length / BOOKINGS_PER_PAGE) || 1;
+  }, [latestTenBookings]);
+
+  const paginatedBookings = useMemo(() => {
+    const start = (bookingPage - 1) * BOOKINGS_PER_PAGE;
+    const end = start + BOOKINGS_PER_PAGE;
+    return latestTenBookings.slice(start, end);
+  }, [latestTenBookings, bookingPage]);
+
   const counts = useMemo(
     () => ({
-      bookings: bookings.length,
+      bookings: latestTenBookings.length,
       purchases: purchases.length,
     }),
-    [bookings, purchases]
+    [latestTenBookings, purchases]
   );
 
   const handlePurchaseAction = async (id, action) => {
@@ -135,6 +156,14 @@ export default function BrokerOrders({ user }) {
     } catch (e) {
       alert(e?.response?.data?.message || "Action failed.");
     }
+  };
+
+  const goPrevBookings = () => {
+    setBookingPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const goNextBookings = () => {
+    setBookingPage((prev) => Math.min(prev + 1, totalBookingPages));
   };
 
   return (
@@ -163,7 +192,7 @@ export default function BrokerOrders({ user }) {
         <div className="mt-8 grid sm:grid-cols-2 gap-6 max-w-3xl">
           <StatCard
             icon={<FaCalendarAlt />}
-            label="TOTAL BOOKINGS"
+            label="LAST 10 BOOKINGS"
             value={counts.bookings}
           />
           <StatCard
@@ -209,13 +238,61 @@ export default function BrokerOrders({ user }) {
             <p className="text-slate-500">Loading...</p>
           </div>
         ) : tab === "bookings" ? (
-          <div className="mt-6 space-y-4">
-            {bookings.length === 0 ? (
-              <EmptyState text="No bookings found for your rent vehicles." />
-            ) : (
-              bookings.map((b) => <BookingCard key={b._id} booking={b} />)
+          <>
+            <div className="mt-6 space-y-4">
+              {latestTenBookings.length === 0 ? (
+                <EmptyState text="No bookings found for your rent vehicles." />
+              ) : (
+                paginatedBookings.map((b) => (
+                  <BookingCard key={b._id} booking={b} />
+                ))
+              )}
+            </div>
+
+            {latestTenBookings.length > BOOKINGS_PER_PAGE && (
+              <div className="mt-6 flex items-center justify-between rounded-3xl bg-white border border-slate-100 px-5 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.06)]">
+                <p className="text-sm font-semibold text-slate-500">
+                  Showing{" "}
+                  <span className="font-extrabold text-slate-900">
+                    {(bookingPage - 1) * BOOKINGS_PER_PAGE + 1}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-extrabold text-slate-900">
+                    {Math.min(bookingPage * BOOKINGS_PER_PAGE, latestTenBookings.length)}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-extrabold text-slate-900">
+                    {latestTenBookings.length}
+                  </span>{" "}
+                  bookings
+                </p>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={goPrevBookings}
+                    disabled={bookingPage === 1}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-extrabold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    type="button"
+                  >
+                    Prev
+                  </button>
+
+                  <div className="text-sm font-extrabold text-slate-900">
+                    {bookingPage} / {totalBookingPages}
+                  </div>
+
+                  <button
+                    onClick={goNextBookings}
+                    disabled={bookingPage === totalBookingPages}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-extrabold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    type="button"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             )}
-          </div>
+          </>
         ) : (
           <div className="mt-6 space-y-4">
             {purchases.length === 0 ? (
