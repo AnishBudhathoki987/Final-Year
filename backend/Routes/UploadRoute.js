@@ -41,7 +41,9 @@ router.post("/", (req, res) => {
       return res.status(400).json({ message: err.message || "Upload failed" });
     }
     const files = req.files || [];
-    const urls = files.map((f) => `/uploads/${f.filename}`);
+   const baseUrl = `${req.protocol}://${req.get("host")}`;
+   const urls = files.map((f) => `${baseUrl}/uploads/${f.filename}`);
+
     return res.json({ urls });
   });
 });

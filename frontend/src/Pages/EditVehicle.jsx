@@ -23,6 +23,7 @@ export default function EditVehicle({ user }) {
   const [category, setCategory] = useState("");
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
+  const [numberPlate, setNumberPlate] = useState(""); // ✅ NEW
   const [year, setYear] = useState("");
   const [mileage, setMileage] = useState("");
 
@@ -36,10 +37,10 @@ export default function EditVehicle({ user }) {
   const [description, setDescription] = useState("");
 
   // existing images (urls from DB)
-  const [existingImages, setExistingImages] = useState([]); // string[]
+  const [existingImages, setExistingImages] = useState([]);
 
   // new images (files)
-  const [newImages, setNewImages] = useState([]); // [{file, preview}]
+  const [newImages, setNewImages] = useState([]);
   const fileRef = useRef(null);
 
   // UI
@@ -62,6 +63,7 @@ export default function EditVehicle({ user }) {
         setCategory(v.category || "");
         setBrand(v.brand || "");
         setModel(v.model || "");
+        setNumberPlate(v.numberPlate || ""); // ✅ NEW
         setYear(v.year ? String(v.year) : "");
         setMileage(v.mileage ? String(v.mileage) : "");
 
@@ -119,11 +121,11 @@ export default function EditVehicle({ user }) {
     if (!title.trim()) return "Listing title is required.";
     if (!location.trim()) return "Location is required.";
     if (!category.trim()) return "Category is required.";
+    if (!numberPlate.trim()) return "Number plate is required."; // ✅ NEW
 
     if (listingType === "rent" && !String(pricePerDay).trim()) return "Price per day is required.";
     if (listingType === "sale" && !String(price).trim()) return "Total price is required.";
 
-    // keep at least one image overall
     if (existingImages.length === 0 && newImages.length === 0) return "Keep at least 1 image.";
     return "";
   };
@@ -141,7 +143,6 @@ export default function EditVehicle({ user }) {
     try {
       let uploadedUrls = [];
 
-      // ✅ if user selected new images → upload them
       if (newImages.length > 0) {
         const fd = new FormData();
         newImages.forEach((img) => fd.append("images", img.file));
@@ -156,7 +157,6 @@ export default function EditVehicle({ user }) {
         uploadedUrls = up.data?.urls || [];
       }
 
-      // ✅ final images = existing kept + new uploaded
       const finalImages = [...existingImages, ...uploadedUrls];
 
       const payload = {
@@ -167,6 +167,7 @@ export default function EditVehicle({ user }) {
 
         brand: brand.trim(),
         model: model.trim(),
+        numberPlate: numberPlate.trim().toUpperCase(), // ✅ NEW
         year: year ? Number(year) : undefined,
         mileage: mileage ? Number(mileage) : 0,
 
@@ -326,7 +327,18 @@ export default function EditVehicle({ user }) {
               </div>
             </div>
 
+            {/* ✅ NEW NUMBER PLATE FIELD */}
             <div className="mt-4 grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label text="Number Plate" />
+                <input
+                  value={numberPlate}
+                  onChange={(e) => setNumberPlate(e.target.value.toUpperCase())}
+                  placeholder="e.g. BA 2 CHA 1234"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm uppercase outline-none focus:ring-4 focus:ring-blue-100"
+                />
+              </div>
+
               <div>
                 <Label text="Year" />
                 <input
@@ -336,7 +348,9 @@ export default function EditVehicle({ user }) {
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-blue-100"
                 />
               </div>
+            </div>
 
+            <div className="mt-4 grid sm:grid-cols-2 gap-4">
               <div>
                 <Label text="Mileage (km)" />
                 <input
@@ -387,7 +401,6 @@ export default function EditVehicle({ user }) {
               <p className="mt-1 text-sm text-slate-500">They will be added to current images.</p>
             </button>
 
-            {/* existing images */}
             {existingImages.length > 0 && (
               <>
                 <p className="mt-6 text-xs font-extrabold text-slate-600">Current Images</p>
@@ -409,7 +422,6 @@ export default function EditVehicle({ user }) {
               </>
             )}
 
-            {/* new images */}
             {newImages.length > 0 && (
               <>
                 <p className="mt-6 text-xs font-extrabold text-slate-600">New Images</p>

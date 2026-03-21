@@ -4,14 +4,13 @@ import mongoose from "mongoose";
 const vehicleSchema = new mongoose.Schema(
   {
     // Core
-    title: { type: String, required: true, trim: true }, // e.g. "Toyota Fortuner 2023"
+    title: { type: String, required: true, trim: true },
 
-    // ✅ IMPORTANT: use type (rent/sale)
     type: { type: String, enum: ["rent", "sale"], required: true },
 
     // Pricing
-    price: { type: Number, default: null }, // sale price
-    pricePerDay: { type: Number, default: null }, // rent price per day
+    price: { type: Number, default: null },
+    pricePerDay: { type: Number, default: null },
 
     // Details
     brand: { type: String, trim: true },
@@ -19,13 +18,22 @@ const vehicleSchema = new mongoose.Schema(
     year: { type: Number },
     mileage: { type: Number, default: 0 },
 
+    // ✅ NEW FIELD (IMPORTANT)
+    numberPlate: {
+      type: String,
+      required: [true, "Number plate is required"],
+      trim: true,
+      uppercase: true,
+      unique: true, // 🔥 UNIQUE
+    },
+
     fuelType: {
       type: String,
       enum: ["Petrol", "Diesel", "Electric", "Hybrid"],
       trim: true,
     },
 
-    category: { type: String, trim: true }, // SUV/Sedan/Hatchback/EV etc.
+    category: { type: String, trim: true },
 
     transmission: {
       type: String,
@@ -41,16 +49,15 @@ const vehicleSchema = new mongoose.Schema(
     status: { type: String, enum: ["active", "hidden"], default: "active" },
     isAvailable: { type: Boolean, default: true },
 
-    // ✅ NEW: soft delete fields
+    // Soft delete
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date, default: null },
 
     features: { type: String, trim: true },
     description: { type: String, trim: true },
 
-    images: [{ type: String }], // image URLs
+    images: [{ type: String }],
 
-    // owner (broker)
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

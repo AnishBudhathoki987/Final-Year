@@ -187,4 +187,31 @@ router.get("/broker/mine", protect, authorize("broker"), async (req, res) => {
   }
 });
 
+/* ---------------- 6) GET MY ACTIVE/UPCOMING BOOKING FOR A VEHICLE ---------------- */
+router.get(
+  "/my-booking-for-vehicle/:vehicleId",
+  protect,
+  authorize("user"),
+  async (req, res) => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const booking = await Booking.findOne({
+        vehicle: req.params.vehicleId,
+        user: req.user._id,
+        status: { $ne: "cancelled" },
+        endDate: { $gte: today }, // ✅ only current or future booking
+      })
+        .sort({ startDate: 1 })
+        .populate("vehicle", "title location images pricePerDay");
+
+      return res.json({ booking });
+    } catch (err) {
+      console.log("Get my booking for vehicle error:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
 export default router;

@@ -14,6 +14,7 @@ import {
   FaCheckCircle,
   FaEnvelope,
   FaPhoneAlt,
+  FaIdCard,
 } from "react-icons/fa";
 
 export default function VehicleDetails({ user }) {
@@ -21,7 +22,6 @@ export default function VehicleDetails({ user }) {
   const { id } = useParams();
   const location = useLocation();
 
-  // If navigated with state
   const stateVehicle = location.state?.vehicle || null;
 
   const [vehicle, setVehicle] = useState(stateVehicle);
@@ -31,7 +31,9 @@ export default function VehicleDetails({ user }) {
   const [selectedImg, setSelectedImg] = useState(0);
   const [saved, setSaved] = useState(false);
 
-  // ✅ ALWAYS fetch by id (to get populated createdBy), but keep UI instant if state exists
+  // show user's previous booking for this vehicle
+  const [myBooking, setMyBooking] = useState(null);
+
   useEffect(() => {
     if (stateVehicle) {
       setVehicle(stateVehicle);
@@ -43,7 +45,25 @@ export default function VehicleDetails({ user }) {
       try {
         const res = await axios.get(`/api/vehicles/${id}`);
         const v = res.data?.vehicle ?? res.data;
-        setVehicle(v); // overwrite with full populated version
+        setVehicle(v);
+
+        const token = localStorage.getItem("token");
+
+        if (token && user?.role === "user" && v?.type === "rent") {
+          try {
+            const bookingRes = await axios.get(
+              `/api/bookings/my-booking-for-vehicle/${id}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            setMyBooking(bookingRes.data?.booking || null);
+          } catch {
+            setMyBooking(null);
+          }
+        } else {
+          setMyBooking(null);
+        }
       } catch {
         setVehicle(null);
         setError("Vehicle not found. Invalid id or listing removed.");
@@ -53,9 +73,11 @@ export default function VehicleDetails({ user }) {
     };
 
     fetchById();
-  }, [id, stateVehicle]);
+  }, [id, stateVehicle, user]);
 
-  useEffect(() => setSelectedImg(0), [vehicle?._id]);
+  useEffect(() => {
+    setSelectedImg(0);
+  }, [vehicle?._id]);
 
   const images = useMemo(() => {
     if (!vehicle) return [];
@@ -75,32 +97,35 @@ export default function VehicleDetails({ user }) {
   const priceLabel = isRent ? "Price per day" : "Total Price";
   const actionText = isRent ? "Book Now" : "Buy Now";
 
-  // ✅ UPDATED: Primary action navigates to booking page for rent
-  // ✅ Primary action
-      const onPrimaryAction = () => {
-      if (!user) return navigate("/login");
+  const formatDate = (date) => {
+    if (!date) return "—";
+    return new Date(date).toLocaleDateString();
+  };
 
-      if (isRent) {
+  const onPrimaryAction = () => {
+    if (!user) return navigate("/login");
+
+    if (isRent) {
       return navigate(`/book/${vehicle._id}`);
-       }
+    }
 
-      return navigate(`/purchase/${vehicle._id}`);
-      };
-     const onMessage = () => {
-     if (!user) return navigate("/login");
+    return navigate(`/purchase/${vehicle._id}`);
+  };
 
-     const brokerId = vehicle?.createdBy?._id || vehicle?.createdBy;
+  const onMessage = () => {
+    if (!user) return navigate("/login");
 
-     if (!brokerId) {
-    return alert("Broker not found.");
+    const brokerId = vehicle?.createdBy?._id || vehicle?.createdBy;
+
+    if (!brokerId) {
+      return alert("Broker not found.");
     }
 
     navigate(`/chat/${brokerId}`);
-    };
+  };
 
   const onCall = () => alert("Call clicked! (connect to broker contact later)");
 
-  // ✅ Strong broker name resolver
   const brokerObj = vehicle?.createdBy || {};
   const ownerName =
     brokerObj.name ||
@@ -153,7 +178,6 @@ export default function VehicleDetails({ user }) {
   return (
     <div className="min-h-screen bg-[#f6f7fb]">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* breadcrumb */}
         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
           <button
             onClick={() => navigate(-1)}
@@ -169,11 +193,14 @@ export default function VehicleDetails({ user }) {
         </div>
 
         <div className="mt-6 grid lg:grid-cols-[1.6fr_1fr] gap-8">
-          {/* left */}
           <div>
             <div className="rounded-[28px] bg-white border border-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.06)] overflow-hidden">
               <div className="relative h-[360px]">
-                <img src={images[selectedImg]} alt={vehicle.title} className="h-full w-full object-cover" />
+                <img
+                  src={images[selectedImg]}
+                  alt={vehicle.title}
+                  className="h-full w-full object-cover"
+                />
 
                 <div
                   className={`absolute top-5 left-5 ${badgeClass} text-white text-xs font-extrabold px-3 py-1.5 rounded-full`}
@@ -191,7 +218,6 @@ export default function VehicleDetails({ user }) {
                 </button>
               </div>
 
-              {/* thumbs */}
               <div className="p-5">
                 <div className="grid grid-cols-4 gap-4">
                   {images.slice(0, 4).map((img, idx) => (
@@ -215,11 +241,10 @@ export default function VehicleDetails({ user }) {
               </div>
             </div>
 
-            {/* specs */}
             <div className="mt-8 rounded-[28px] bg-white border border-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.06)] p-6">
               <h3 className="text-lg font-extrabold text-slate-900">Specifications</h3>
 
-              <div className="mt-5 grid sm:grid-cols-4 gap-4">
+              <div className="mt-5 grid sm:grid-cols-5 gap-4">
                 <Spec icon={<FaGasPump />} label="Fuel Type" value={vehicle.fuelType || "—"} />
                 <Spec icon={<FaCogs />} label="Transmission" value={vehicle.transmission || "—"} />
                 <Spec icon={<FaUsers />} label="Capacity" value={vehicle.seats ? `${vehicle.seats} Seats` : "—"} />
@@ -228,10 +253,10 @@ export default function VehicleDetails({ user }) {
                   label="Mileage"
                   value={vehicle.mileage ? `${Number(vehicle.mileage).toLocaleString("en-US")} km` : "—"}
                 />
+                <Spec icon={<FaIdCard />} label="Number Plate" value={vehicle.numberPlate || "—"} />
               </div>
             </div>
 
-            {/* about */}
             <div className="mt-8 rounded-[28px] bg-white border border-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.06)] p-6">
               <h3 className="text-lg font-extrabold text-slate-900">About this Vehicle</h3>
               <p className="mt-3 text-sm text-slate-600 leading-relaxed">
@@ -240,7 +265,6 @@ export default function VehicleDetails({ user }) {
             </div>
           </div>
 
-          {/* right */}
           <div className="rounded-[28px] bg-white border border-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.06)] p-6 h-fit sticky top-24">
             <h2 className="text-3xl font-extrabold text-slate-900">{vehicle.title}</h2>
 
@@ -256,6 +280,20 @@ export default function VehicleDetails({ user }) {
                 {isRent ? <span className="text-sm text-slate-500 mb-1">/ Day</span> : null}
               </div>
             </div>
+
+            {isRent && myBooking && (
+              <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                <p className="text-xs font-bold text-emerald-700">
+                  YOU ALREADY BOOKED THIS VEHICLE FOR
+                </p>
+                <p className="mt-1 text-sm font-extrabold text-slate-900">
+                  {formatDate(myBooking.startDate)} - {formatDate(myBooking.endDate)}
+                </p>
+                <p className="mt-1 text-xs text-slate-600">
+                  You can still book this vehicle again for other available dates.
+                </p>
+              </div>
+            )}
 
             <button
               onClick={onPrimaryAction}
@@ -285,7 +323,6 @@ export default function VehicleDetails({ user }) {
               </button>
             </div>
 
-            {/* LISTED BY */}
             <div className="mt-6 border-t border-slate-100 pt-6">
               <p className="text-xs font-bold text-slate-400">LISTED BY</p>
 

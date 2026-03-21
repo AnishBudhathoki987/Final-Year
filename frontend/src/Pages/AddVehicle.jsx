@@ -27,6 +27,7 @@ export default function AddVehicle({ user }) {
   const [category, setCategory] = useState("");
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
+  const [numberPlate, setNumberPlate] = useState(""); // ✅ NEW
   const [year, setYear] = useState("");
   const [mileage, setMileage] = useState("");
 
@@ -65,7 +66,7 @@ export default function AddVehicle({ user }) {
     setImages((prev) => [...prev, ...previews]);
   };
 
-  // ✅ cleanup previews (avoid memory leak)
+  // ✅ cleanup previews
   useEffect(() => {
     return () => {
       images.forEach((img) => {
@@ -93,6 +94,7 @@ export default function AddVehicle({ user }) {
     if (!title.trim()) return "Listing title is required.";
     if (!location.trim()) return "Location is required.";
     if (!category.trim()) return "Category is required.";
+    if (!numberPlate.trim()) return "Number plate is required."; // ✅ NEW
     if (listingType === "rent" && !String(pricePerDay).trim())
       return "Price per day is required for rent listings.";
     if (listingType === "sale" && !String(price).trim())
@@ -146,6 +148,7 @@ export default function AddVehicle({ user }) {
 
         brand: brand.trim(),
         model: model.trim(),
+        numberPlate: numberPlate.trim().toUpperCase(), // ✅ NEW
         year: year ? Number(year) : undefined,
         mileage: mileage ? Number(mileage) : 0,
 
@@ -313,7 +316,18 @@ export default function AddVehicle({ user }) {
               </div>
             </div>
 
+            {/* ✅ NEW NUMBER PLATE FIELD */}
             <div className="mt-4 grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label text="Number Plate" />
+                <input
+                  value={numberPlate}
+                  onChange={(e) => setNumberPlate(e.target.value.toUpperCase())}
+                  placeholder="e.g. BA 2 CHA 1234"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm uppercase outline-none focus:ring-4 focus:ring-blue-100"
+                />
+              </div>
+
               <div>
                 <Label text="Year" />
                 <input
@@ -324,7 +338,9 @@ export default function AddVehicle({ user }) {
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-blue-100"
                 />
               </div>
+            </div>
 
+            <div className="mt-4 grid sm:grid-cols-2 gap-4">
               <div>
                 <Label text="Mileage (km)" />
                 <input
