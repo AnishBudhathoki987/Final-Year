@@ -18,13 +18,13 @@ const vehicleSchema = new mongoose.Schema(
     year: { type: Number },
     mileage: { type: Number, default: 0 },
 
-    // ✅ NEW FIELD (IMPORTANT)
+    // Unique vehicle identity
     numberPlate: {
       type: String,
       required: [true, "Number plate is required"],
       trim: true,
       uppercase: true,
-      unique: true, // 🔥 UNIQUE
+      unique: true,
     },
 
     fuelType: {

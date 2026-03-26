@@ -6,7 +6,7 @@ import { protect, authorize } from "../MiddleWare/AuthValidation.js";
 const router = express.Router();
 
 /**
- *  GET stats
+ * GET stats
  */
 router.get("/stats/mine", protect, authorize("broker"), async (req, res) => {
   try {
@@ -54,7 +54,7 @@ router.get("/", async (req, res) => {
         { title: { $regex: search, $options: "i" } },
         { brand: { $regex: search, $options: "i" } },
         { model: { $regex: search, $options: "i" } },
-        { numberPlate: { $regex: search, $options: "i" } }, // ✅ NEW
+        { numberPlate: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -69,10 +69,14 @@ router.get("/", async (req, res) => {
     }
 
     let sortObj = { createdAt: -1 };
-    if (sort === "priceLow") sortObj = type === "rent" ? { pricePerDay: 1 } : { price: 1 };
-    if (sort === "priceHigh") sortObj = type === "rent" ? { pricePerDay: -1 } : { price: -1 };
+    if (sort === "priceLow") {
+      sortObj = type === "rent" ? { pricePerDay: 1 } : { price: 1 };
+    }
+    if (sort === "priceHigh") {
+      sortObj = type === "rent" ? { pricePerDay: -1 } : { price: -1 };
+    }
 
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
 
     const [vehicles, total] = await Promise.all([
       Vehicle.find(filter).sort(sortObj).skip(skip).limit(Number(limit)),
@@ -83,7 +87,7 @@ router.get("/", async (req, res) => {
       vehicles,
       total,
       page: Number(page),
-      pages: Math.ceil(total / limit) || 1,
+      pages: Math.ceil(total / Number(limit)) || 1,
     });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
@@ -130,7 +134,6 @@ router.post("/", protect, authorize("broker"), async (req, res) => {
   try {
     const data = req.body;
 
-    // ✅ UPDATED validation
     if (!data.title || !data.type || !data.location || !data.numberPlate) {
       return res.status(400).json({
         message: "title, type, location and numberPlate are required",
@@ -149,9 +152,22 @@ router.post("/", protect, authorize("broker"), async (req, res) => {
       return res.status(400).json({ message: "price required" });
     }
 
+    const normalizedPlate = data.numberPlate.trim().toUpperCase();
+
+    const existingVehicle = await Vehicle.findOne({
+      numberPlate: normalizedPlate,
+      isDeleted: false,
+    });
+
+    if (existingVehicle) {
+      return res.status(400).json({
+        message: "Number plate already exists",
+      });
+    }
+
     const created = await Vehicle.create({
       ...data,
-      numberPlate: data.numberPlate.trim().toUpperCase(), // ✅ IMPORTANT
+      numberPlate: normalizedPlate,
       createdBy: req.user._id,
       isDeleted: false,
       deletedAt: null,
@@ -159,7 +175,6 @@ router.post("/", protect, authorize("broker"), async (req, res) => {
 
     res.status(201).json(created);
   } catch (error) {
-    // ✅ DUPLICATE ERROR
     if (error.code === 11000) {
       return res.status(400).json({
         message: "Number plate already exists",
@@ -185,24 +200,33 @@ router.put("/:id", protect, authorize("broker"), async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    // ✅ HANDLE numberPlate
     if (req.body.numberPlate !== undefined) {
-      if (!String(req.body.numberPlate).trim()) {
+      const normalizedPlate = String(req.body.numberPlate).trim().toUpperCase();
+
+      if (!normalizedPlate) {
         return res.status(400).json({
           message: "Number plate cannot be empty",
         });
       }
 
-      req.body.numberPlate = String(req.body.numberPlate)
-        .trim()
-        .toUpperCase();
+      const existingVehicle = await Vehicle.findOne({
+        numberPlate: normalizedPlate,
+        _id: { $ne: req.params.id },
+        isDeleted: false,
+      });
+
+      if (existingVehicle) {
+        return res.status(400).json({
+          message: "Number plate already exists",
+        });
+      }
+
+      req.body.numberPlate = normalizedPlate;
     }
 
-    const updated = await Vehicle.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
+    const updated = await Vehicle.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
 
     res.json(updated);
   } catch (error) {
@@ -217,7 +241,7 @@ router.put("/:id", protect, authorize("broker"), async (req, res) => {
 });
 
 /**
- * DELETE (soft)
+ * DELETE vehicle (soft delete)
  */
 router.delete("/:id", protect, authorize("broker"), async (req, res) => {
   try {
