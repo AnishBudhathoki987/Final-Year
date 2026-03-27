@@ -118,7 +118,7 @@ router.post("/", protect, authorize("user"), async (req, res) => {
       pricePerDay,
       days,
       totalPrice,
-      status: "confirmed",
+      status: "pending",
     });
 
     const populated = await Booking.findById(booking._id)
@@ -201,7 +201,7 @@ router.get(
         vehicle: req.params.vehicleId,
         user: req.user._id,
         status: { $ne: "cancelled" },
-        endDate: { $gte: today }, // ✅ only current or future booking
+        endDate: { $gte: today },
       })
         .sort({ startDate: 1 })
         .populate("vehicle", "title location images pricePerDay");

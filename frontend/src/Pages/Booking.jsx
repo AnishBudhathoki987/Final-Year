@@ -1,4 +1,3 @@
-// src/Pages/Booking.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
@@ -33,26 +32,26 @@ const dayDiff = (a, b) => {
 
 export default function Booking({ user }) {
   const navigate = useNavigate();
-  const { id } = useParams(); // vehicleId
+  const { id } = useParams();
 
   const [vehicle, setVehicle] = useState(null);
   const [loadingVehicle, setLoadingVehicle] = useState(true);
 
-  // form
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [pickupLocation, setPickupLocation] = useState("");
-  const [fullName, setFullName] = useState(user?.name || "");
+  const [fullName, setFullName] = useState(user?.name || user?.username || "");
   const [phone, setPhone] = useState("");
 
-  // status
   const [checking, setChecking] = useState(false);
-  const [available, setAvailable] = useState(null); // null|true|false
+  const [available, setAvailable] = useState(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState("");
 
-  // load vehicle
+  const [bookingCreated, setBookingCreated] = useState(false);
+  const [bookingId, setBookingId] = useState("");
+
   useEffect(() => {
     const load = async () => {
       setLoadingVehicle(true);
@@ -86,7 +85,6 @@ export default function Booking({ user }) {
     return toISO(d);
   }, [startDate]);
 
-  // availability check
   useEffect(() => {
     const run = async () => {
       setAvailable(null);
@@ -139,19 +137,76 @@ export default function Booking({ user }) {
         startDate,
         endDate,
         pickupLocation: pickupLocation.trim(),
-        // fullName, phone (save later if you add to Booking model)
       };
 
-      await axios.post("/api/bookings", payload, {
+      const res = await axios.post("/api/bookings", payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setSuccess("Booking confirmed! Payment will be added later.");
-      setTimeout(() => navigate("/my-bookings"), 700);
+      const createdBooking = res.data?.booking || res.data;
+
+      setBookingId(createdBooking._id);
+      setBookingCreated(true);
+      setSuccess("Booking created successfully. Please continue with eSewa payment.");
     } catch (e) {
       setError(e?.response?.data?.message || "Booking failed.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEsewaPayment = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return navigate("/login");
+
+      const res = await axios.post(
+        "/api/payments/esewa/initiate",
+        {
+          vehicleId: id,
+          bookingId,
+          amount: total,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const esewa = res.data?.esewa;
+      if (!esewa) {
+        return setError("Failed to initiate eSewa payment.");
+      }
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = esewa.url;
+
+      const fields = {
+        amount: esewa.amount,
+        tax_amount: esewa.tax_amount,
+        total_amount: esewa.total_amount,
+        transaction_uuid: esewa.transaction_uuid,
+        product_code: esewa.product_code,
+        product_service_charge: esewa.product_service_charge,
+        product_delivery_charge: esewa.product_delivery_charge,
+        success_url: esewa.success_url,
+        failure_url: esewa.failure_url,
+        signed_field_names: esewa.signed_field_names,
+        signature: esewa.signature,
+      };
+
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+    } catch (e) {
+      setError(e?.response?.data?.message || "Failed to redirect to eSewa.");
     }
   };
 
@@ -197,7 +252,6 @@ export default function Booking({ user }) {
   return (
     <div className="min-h-screen bg-[#f6f7fb]">
       <div className="max-w-6xl mx-auto px-4 py-10">
-        {/* Top */}
         <div className="flex items-center justify-between gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -213,9 +267,7 @@ export default function Booking({ user }) {
           </div>
         </div>
 
-        {/* Layout like sample */}
         <div className="mt-8 grid lg:grid-cols-[1.25fr_0.75fr] gap-7">
-          {/* Left: Form */}
           <div className="rounded-[28px] bg-white border border-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.06)] p-6 sm:p-8">
             <h2 className="text-2xl font-extrabold text-slate-900">Book this Vehicle</h2>
             <p className="mt-1 text-sm text-slate-500">
@@ -243,7 +295,9 @@ export default function Booking({ user }) {
                     min={toISO(new Date())}
                     onChange={(e) => {
                       setStartDate(e.target.value);
-                      if (endDate && e.target.value && endDate <= e.target.value) setEndDate("");
+                      if (endDate && e.target.value && endDate <= e.target.value) {
+                        setEndDate("");
+                      }
                     }}
                     className="w-full text-sm outline-none"
                   />
@@ -323,21 +377,33 @@ export default function Booking({ user }) {
               </div>
             </div>
 
-            <button
-              onClick={submitBooking}
-              disabled={submitting || checking || available === false}
-              className="mt-7 w-full rounded-2xl bg-blue-600 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 transition disabled:opacity-60"
-              type="button"
-            >
-              {submitting ? "Confirming..." : "Confirm Booking →"}
-            </button>
+            {!bookingCreated ? (
+              <button
+                onClick={submitBooking}
+                disabled={submitting || checking || available === false}
+                className="mt-7 w-full rounded-2xl bg-blue-600 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 transition disabled:opacity-60"
+                type="button"
+              >
+                {submitting ? "Confirming..." : "Confirm Booking →"}
+              </button>
+            ) : (
+              <button
+                onClick={handleEsewaPayment}
+                className="mt-7 w-full rounded-2xl bg-emerald-600 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-emerald-600/25 hover:bg-emerald-700 transition"
+                type="button"
+              >
+                Pay with eSewa →
+              </button>
+            )}
 
             <div className="mt-4 text-xs text-slate-400 flex items-center justify-center gap-2">
-              <FaLock /> Payment will be added in later sprint.
+              <FaLock />
+              {!bookingCreated
+                ? "Create your booking first, then continue to eSewa payment."
+                : "You will be redirected to eSewa to complete payment."}
             </div>
           </div>
 
-          {/* Right: Summary */}
           <div className="rounded-[28px] bg-white border border-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.06)] p-6 sm:p-8 h-fit">
             <div className="flex items-center justify-between">
               <p className="text-xs font-extrabold text-slate-400">FOR RENT</p>
@@ -362,7 +428,6 @@ export default function Booking({ user }) {
               </div>
             </div>
 
-            {/* ✅ PRICE DETAILS (NO SERVICE FEE) */}
             <div className="mt-6 rounded-3xl bg-[#f6f7fb] border border-slate-100 p-5">
               <Row
                 label={`NPR ${Number(vehicle.pricePerDay || 0).toLocaleString(
