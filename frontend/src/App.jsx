@@ -31,6 +31,9 @@ import BrokerOrder from "./Pages/BrokerOrder";
 import Chat from "./Pages/Chat";
 import BrokerMessages from "./Pages/BrokerMessage";
 import BrokerChat from "./Pages/BrokerChat";
+import PaymentSuccess from "./Pages/PaymentSuccess";
+import PaymentFailure from "./Pages/PaymentFailure";
+import MyPayments from "./Pages/MyPayments";
 
 function Layout({ user, setUser }) {
   const location = useLocation();
@@ -42,8 +45,9 @@ function Layout({ user, setUser }) {
     location.pathname.startsWith("/book/") ||
     location.pathname.startsWith("/purchase/") ||
     location.pathname.startsWith("/my-purchases") ||
-    location.pathname.startsWith("/user/dashboard")
-    location.pathname.startsWith("/chat/");
+    location.pathname.startsWith("/user/dashboard") ||
+    location.pathname.startsWith("/chat/") ||
+    location.pathname.startsWith("/payment-");
 
   return (
     <>
@@ -128,13 +132,46 @@ function Layout({ user, setUser }) {
         <Route
           path="/chat/:brokerId"
           element={
-          !user ? (
-          <Navigate to="/login" replace />
-          ) : (
-          <Chat user={user} />
-           )
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : (
+              <Chat user={user} />
+            )
           }
-          />
+        />
+
+        <Route
+          path="/payment-success"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : (
+              <PaymentSuccess />
+            )
+          }
+        />
+
+        <Route
+          path="/payment-failure"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : (
+              <PaymentFailure />
+            )
+          }
+        />
+
+        <Route
+          path="/my-payments"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : (
+              <MyPayments />
+            )
+          }
+        />
 
         <Route path="/broker/dashboard" element={<BrokerDashboard user={user} setUser={setUser} />} />
         <Route path="/broker/add-vehicle" element={<AddVehicle user={user} />} />
