@@ -24,8 +24,13 @@ const Login = ({ setUser }) => {
       localStorage.setItem("token", res.data.token);
       setUser(res.data);
 
-      // ✅ Always go to Home after login
-      navigate("/");
+      if (res.data.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (res.data.role === "broker") {
+        navigate("/broker/dashboard");
+      } else {
+        navigate("/user/dashboard");
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     }
@@ -34,14 +39,11 @@ const Login = ({ setUser }) => {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
       <div className="w-full max-w-5xl h-[600px] grid md:grid-cols-2 bg-white rounded-2xl shadow-xl overflow-hidden">
-        {/* LEFT IMAGE */}
         <div className="hidden md:block">
           <img src="/car.png" alt="Car" className="w-full h-full object-cover" />
         </div>
 
-        {/* RIGHT PANEL */}
         <div className="flex items-center justify-center px-10 relative">
-          {/* Back to Home */}
           <button
             type="button"
             onClick={() => navigate("/")}
@@ -66,7 +68,6 @@ const Login = ({ setUser }) => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* EMAIL */}
               <div className="relative">
                 <FaEnvelope className="absolute top-3.5 left-4 text-gray-400" />
                 <input
@@ -80,7 +81,6 @@ const Login = ({ setUser }) => {
                 />
               </div>
 
-              {/* PASSWORD */}
               <div className="relative">
                 <FaLock className="absolute top-3.5 left-4 text-gray-400" />
                 <FaEye

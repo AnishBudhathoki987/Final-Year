@@ -50,7 +50,6 @@ const Register = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-5xl h-[600px] grid md:grid-cols-2 bg-white rounded-2xl shadow-xl overflow-hidden">
-        {/* LEFT IMAGE */}
         <div className="hidden md:block relative">
           <img src="/car.png" alt="Car" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-black/20" />
@@ -62,9 +61,7 @@ const Register = () => {
           </div>
         </div>
 
-        {/* RIGHT PANEL (✅ scrollable if needed) */}
         <div className="relative h-[600px] overflow-y-auto">
-          {/* Top Back Button */}
           <button
             type="button"
             onClick={() => navigate("/")}
@@ -73,7 +70,6 @@ const Register = () => {
             ← Back to Home
           </button>
 
-          {/* Content */}
           <div className="min-h-full flex items-center justify-center px-6 sm:px-10 pt-20 pb-10">
             <div className="w-full max-w-md">
               <h1 className="text-3xl font-bold text-center mb-2">
@@ -91,7 +87,6 @@ const Register = () => {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* NAME */}
                 <div className="relative">
                   <FaUser className="absolute top-3.5 left-4 text-gray-400" />
                   <input
@@ -105,7 +100,6 @@ const Register = () => {
                   />
                 </div>
 
-                {/* EMAIL */}
                 <div className="relative">
                   <FaEnvelope className="absolute top-3.5 left-4 text-gray-400" />
                   <input
@@ -119,7 +113,6 @@ const Register = () => {
                   />
                 </div>
 
-                {/* PASSWORD */}
                 <div className="relative">
                   <FaLock className="absolute top-3.5 left-4 text-gray-400" />
                   <FaEye
@@ -138,7 +131,6 @@ const Register = () => {
                   />
                 </div>
 
-                {/* ROLE */}
                 <select
                   name="role"
                   value={formData.role}
@@ -147,9 +139,9 @@ const Register = () => {
                 >
                   <option value="user">Register as User</option>
                   <option value="broker">Register as Broker</option>
+                  <option value="admin">Register as Admin</option>
                 </select>
 
-                {/* TERMS */}
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <input
                     type="checkbox"
@@ -169,7 +161,6 @@ const Register = () => {
                 </button>
               </form>
 
-              {/* ✅ Bottom links (now visible always) */}
               <p className="text-center text-sm text-gray-500 mt-6">
                 Already have an account?
                 <Link
@@ -189,7 +180,6 @@ const Register = () => {
                 </button>
               </div>
 
-              {/* little extra space at bottom for safety */}
               <div className="h-2" />
             </div>
           </div>

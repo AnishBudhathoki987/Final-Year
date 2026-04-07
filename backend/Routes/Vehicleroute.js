@@ -1,12 +1,14 @@
 // Routes/Vehicleroute.js
 import express from "express";
 import Vehicle from "../Models/vehicle.js";
+import Booking from "../Models/Booking.js";
+import Purchase from "../Models/purchase.js";
 import { protect, authorize } from "../MiddleWare/AuthValidation.js";
 
 const router = express.Router();
 
 /**
- * GET stats
+ * GET broker vehicle stats
  */
 router.get("/stats/mine", protect, authorize("broker"), async (req, res) => {
   try {
@@ -20,6 +22,139 @@ router.get("/stats/mine", protect, authorize("broker"), async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+/**
+ * GET broker model performance
+ * Group by brand + model, not same vehicle repeatedly
+ */
+router.get(
+  "/stats/model-performance",
+  protect,
+  authorize("broker"),
+  async (req, res) => {
+    try {
+      const brokerId = req.user._id;
+
+      // BOOKINGS grouped by brand + model
+      const bookingStats = await Booking.aggregate([
+        {
+          $lookup: {
+            from: "vehicles",
+            localField: "vehicle",
+            foreignField: "_id",
+            as: "vehicle",
+          },
+        },
+        { $unwind: "$vehicle" },
+        {
+          $match: {
+            "vehicle.createdBy": brokerId,
+            "vehicle.isDeleted": false,
+            "vehicle.type": "rent",
+            status: { $in: ["pending", "confirmed"] },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              brand: { $ifNull: ["$vehicle.brand", "Unknown"] },
+              model: { $ifNull: ["$vehicle.model", "Unknown"] },
+            },
+            bookingCount: { $sum: 1 },
+            totalBookingRevenue: { $sum: { $ifNull: ["$totalPrice", 0] } },
+            title: { $first: "$vehicle.title" },
+            image: { $first: { $arrayElemAt: ["$vehicle.images", 0] } },
+          },
+        },
+      ]);
+
+      // PURCHASES grouped by brand + model
+      const purchaseStats = await Purchase.aggregate([
+        {
+          $lookup: {
+            from: "vehicles",
+            localField: "vehicle",
+            foreignField: "_id",
+            as: "vehicle",
+          },
+        },
+        { $unwind: "$vehicle" },
+        {
+          $match: {
+            "vehicle.createdBy": brokerId,
+            "vehicle.isDeleted": false,
+            "vehicle.type": "sale",
+            status: { $in: ["pending", "confirmed"] },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              brand: { $ifNull: ["$vehicle.brand", "Unknown"] },
+              model: { $ifNull: ["$vehicle.model", "Unknown"] },
+            },
+            purchaseCount: { $sum: 1 },
+            totalSalesValue: { $sum: { $ifNull: ["$vehiclePrice", 0] } },
+            title: { $first: "$vehicle.title" },
+            image: { $first: { $arrayElemAt: ["$vehicle.images", 0] } },
+          },
+        },
+      ]);
+
+      // Merge bookings + purchases
+      const merged = new Map();
+
+      for (const item of bookingStats) {
+        const key = `${item._id.brand}-${item._id.model}`;
+        merged.set(key, {
+          brand: item._id.brand,
+          model: item._id.model,
+          bookingCount: item.bookingCount || 0,
+          purchaseCount: 0,
+          totalBookingRevenue: item.totalBookingRevenue || 0,
+          totalSalesValue: 0,
+          title: item.title || "",
+          image: item.image || "",
+        });
+      }
+
+      for (const item of purchaseStats) {
+        const key = `${item._id.brand}-${item._id.model}`;
+
+        if (merged.has(key)) {
+          const existing = merged.get(key);
+          existing.purchaseCount = item.purchaseCount || 0;
+          existing.totalSalesValue = item.totalSalesValue || 0;
+
+          if (!existing.title) existing.title = item.title || "";
+          if (!existing.image) existing.image = item.image || "";
+        } else {
+          merged.set(key, {
+            brand: item._id.brand,
+            model: item._id.model,
+            bookingCount: 0,
+            purchaseCount: item.purchaseCount || 0,
+            totalBookingRevenue: 0,
+            totalSalesValue: item.totalSalesValue || 0,
+            title: item.title || "",
+            image: item.image || "",
+          });
+        }
+      }
+
+      const summary = Array.from(merged.values()).sort((a, b) => {
+        const totalA = a.bookingCount + a.purchaseCount;
+        const totalB = b.bookingCount + b.purchaseCount;
+        return totalB - totalA;
+      });
+
+      res.json({ summary });
+    } catch (error) {
+      console.log("model-performance error:", error);
+      res.status(500).json({ message: "Failed to load model performance." });
+    }
+  }
+);
 
 /**
  * GET vehicles
@@ -115,7 +250,10 @@ router.get("/mine", protect, authorize("broker"), async (req, res) => {
  */
 router.get("/:id", async (req, res) => {
   try {
-    const v = await Vehicle.findById(req.params.id);
+    const v = await Vehicle.findById(req.params.id).populate(
+      "createdBy",
+      "name username email"
+    );
 
     if (!v || v.isDeleted) {
       return res.status(404).json({ message: "Vehicle not found" });

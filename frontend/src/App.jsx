@@ -34,6 +34,9 @@ import BrokerChat from "./Pages/BrokerChat";
 import PaymentSuccess from "./Pages/PaymentSuccess";
 import PaymentFailure from "./Pages/PaymentFailure";
 import MyPayments from "./Pages/MyPayments";
+import AdminDashboard from "./Pages/AdminDashboard";
+import AdminUsers from "./Pages/AdminUsers";
+import AdminBrokers from "./Pages/AdminBrokers";
 
 function Layout({ user, setUser }) {
   const location = useLocation();
@@ -169,6 +172,45 @@ function Layout({ user, setUser }) {
               <Navigate to="/login" replace />
             ) : (
               <MyPayments />
+            )
+          }
+        />
+
+        <Route
+          path="/admin/dashboard"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : user.role !== "admin" ? (
+              <Navigate to="/unauthorized" replace />
+            ) : (
+              <AdminDashboard user={user} />
+            )
+          }
+        />
+
+        <Route
+          path="/admin/users"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : user.role !== "admin" ? (
+              <Navigate to="/unauthorized" replace />
+            ) : (
+              <AdminUsers user={user} />
+            )
+          }
+        />
+
+        <Route
+          path="/admin/brokers"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : user.role !== "admin" ? (
+              <Navigate to="/unauthorized" replace />
+            ) : (
+              <AdminBrokers user={user} />
             )
           }
         />
