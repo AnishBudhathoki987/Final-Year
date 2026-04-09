@@ -37,6 +37,8 @@ import MyPayments from "./Pages/MyPayments";
 import AdminDashboard from "./Pages/AdminDashboard";
 import AdminUsers from "./Pages/AdminUsers";
 import AdminBrokers from "./Pages/AdminBrokers";
+import AdminVehicles from "./Pages/AdminVehicles";
+import AdminTransactions from "./Pages/AdminTransactions";
 
 function Layout({ user, setUser }) {
   const location = useLocation();
@@ -211,6 +213,32 @@ function Layout({ user, setUser }) {
               <Navigate to="/unauthorized" replace />
             ) : (
               <AdminBrokers user={user} />
+            )
+          }
+        />
+
+        <Route
+          path="/admin/vehicles"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : user.role !== "admin" ? (
+              <Navigate to="/unauthorized" replace />
+            ) : (
+              <AdminVehicles user={user} />
+            )
+          }
+        />
+
+        <Route
+          path="/admin/transactions"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : user.role !== "admin" ? (
+              <Navigate to="/unauthorized" replace />
+            ) : (
+              <AdminTransactions user={user} />
             )
           }
         />

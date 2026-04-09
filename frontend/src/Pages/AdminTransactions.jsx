@@ -1,19 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FaArrowLeft, FaBan, FaCheckCircle, FaSearch } from "react-icons/fa";
+import { FaArrowLeft, FaMoneyBillWave, FaSearch } from "react-icons/fa";
 
 const PER_PAGE = 6;
+const fmt = (n) => `NPR ${Number(n || 0).toLocaleString("en-US")}`;
 
-export default function AdminUsers({ user }) {
+export default function AdminTransactions({ user }) {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  const [users, setUsers] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -21,77 +22,59 @@ export default function AdminUsers({ user }) {
     if (user.role !== "admin") return navigate("/unauthorized");
   }, [user, navigate]);
 
-  const loadUsers = async () => {
+  const loadTransactions = async () => {
     setLoading(true);
     setError("");
 
     try {
-      const res = await axios.get("/api/admin/users", {
+      const res = await axios.get("/api/admin/transactions", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUsers(res.data?.users || []);
+      setTransactions(res.data?.transactions || []);
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to load users.");
+      setError(err?.response?.data?.message || "Failed to load transactions.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user?.role === "admin" && token) loadUsers();
+    if (user?.role === "admin" && token) loadTransactions();
   }, [user, token]);
 
-  const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((t) => {
       const matchesSearch =
-        u.username?.toLowerCase().includes(search.toLowerCase()) ||
-        u.email?.toLowerCase().includes(search.toLowerCase());
+        t.customerName?.toLowerCase().includes(search.toLowerCase()) ||
+        t.vehicleTitle?.toLowerCase().includes(search.toLowerCase()) ||
+        t.brokerName?.toLowerCase().includes(search.toLowerCase());
 
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && !u.isBlocked) ||
-        (statusFilter === "blocked" && u.isBlocked);
+      const matchesType = typeFilter === "all" || t.source === typeFilter;
 
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesType;
     });
-  }, [users, search, statusFilter]);
+  }, [transactions, search, typeFilter]);
 
-  const totalPages = Math.ceil(filteredUsers.length / PER_PAGE) || 1;
+  const totalPages = Math.ceil(filteredTransactions.length / PER_PAGE) || 1;
 
-  const paginatedUsers = useMemo(() => {
+  const paginatedTransactions = useMemo(() => {
     const start = (page - 1) * PER_PAGE;
-    return filteredUsers.slice(start, start + PER_PAGE);
-  }, [filteredUsers, page]);
+    return filteredTransactions.slice(start, start + PER_PAGE);
+  }, [filteredTransactions, page]);
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter]);
-
-  const toggleBlock = async (id, isBlocked) => {
-    const ok = window.confirm(
-      `Are you sure you want to ${isBlocked ? "unblock" : "block"} this user?`
-    );
-    if (!ok) return;
-
-    try {
-      await axios.put(
-        `/api/admin/users/${id}/${isBlocked ? "unblock" : "block"}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      loadUsers();
-    } catch (err) {
-      alert(err?.response?.data?.message || "Action failed.");
-    }
-  };
+  }, [search, typeFilter]);
 
   return (
     <div className="min-h-screen bg-[#f6f7fb]">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900">Manage Users</h1>
-            <p className="mt-2 text-slate-500">Block or unblock normal user accounts.</p>
+            <h1 className="text-3xl font-extrabold text-slate-900">Admin Transactions</h1>
+            <p className="mt-2 text-slate-500">
+              View all booking and purchase transactions across the platform.
+            </p>
           </div>
 
           <button
@@ -111,14 +94,17 @@ export default function AdminUsers({ user }) {
 
         <div className="mt-6 rounded-3xl bg-white border border-slate-100 shadow-[0_18px_60px_rgba(0,0,0,0.06)] overflow-hidden">
           <div className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <h2 className="text-lg font-extrabold text-slate-900">Users List</h2>
+            <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+              <FaMoneyBillWave className="text-blue-600" />
+              Transactions List
+            </h2>
 
             <div className="flex flex-wrap gap-3">
               <div className="relative">
                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search username or email"
+                  placeholder="Search customer, vehicle, broker"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="rounded-2xl border border-slate-200 bg-white pl-10 pr-4 py-2.5 text-sm outline-none focus:border-blue-500"
@@ -126,17 +112,17 @@ export default function AdminUsers({ user }) {
               </div>
 
               <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
                 className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500"
               >
-                <option value="all">All Status</option>
-                <option value="active">Active Only</option>
-                <option value="blocked">Blocked Only</option>
+                <option value="all">All Transactions</option>
+                <option value="booking">Bookings</option>
+                <option value="purchase">Purchases</option>
               </select>
 
               <button
-                onClick={loadUsers}
+                onClick={loadTransactions}
                 className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-blue-600 hover:bg-slate-50"
                 type="button"
               >
@@ -146,61 +132,71 @@ export default function AdminUsers({ user }) {
           </div>
 
           <div className="px-6 pb-4 text-sm text-slate-500 font-semibold">
-            Showing {filteredUsers.length} users
+            Showing {filteredTransactions.length} transactions
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-slate-50 text-xs font-extrabold text-slate-500 tracking-wider">
                 <tr>
-                  <th className="px-6 py-4">USERNAME</th>
-                  <th className="px-6 py-4">EMAIL</th>
+                  <th className="px-6 py-4">TYPE</th>
+                  <th className="px-6 py-4">CUSTOMER</th>
+                  <th className="px-6 py-4">BROKER</th>
+                  <th className="px-6 py-4">VEHICLE</th>
+                  <th className="px-6 py-4">AMOUNT</th>
                   <th className="px-6 py-4">STATUS</th>
-                  <th className="px-6 py-4 text-right">ACTION</th>
+                  <th className="px-6 py-4">DATE</th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-10 text-slate-500">
-                      Loading users...
+                    <td colSpan={7} className="px-6 py-10 text-slate-500">
+                      Loading transactions...
                     </td>
                   </tr>
-                ) : paginatedUsers.length === 0 ? (
+                ) : paginatedTransactions.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-10 text-slate-500">
-                      No users found.
+                    <td colSpan={7} className="px-6 py-10 text-slate-500">
+                      No transactions found.
                     </td>
                   </tr>
                 ) : (
-                  paginatedUsers.map((u) => (
-                    <tr key={u._id} className="hover:bg-slate-50/60 transition">
-                      <td className="px-6 py-5 font-bold text-slate-900">{u.username}</td>
-                      <td className="px-6 py-5 text-slate-600">{u.email}</td>
+                  paginatedTransactions.map((t) => (
+                    <tr key={`${t.source}-${t._id}`} className="hover:bg-slate-50/60 transition">
                       <td className="px-6 py-5">
-                        {u.isBlocked ? (
-                          <span className="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-extrabold text-rose-700 border border-rose-100">
-                            <FaBan /> Blocked
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-extrabold text-emerald-700 border border-emerald-100">
-                            <FaCheckCircle /> Active
-                          </span>
-                        )}
+                        <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                          {t.source}
+                        </span>
                       </td>
-                      <td className="px-6 py-5 text-right">
-                        <button
-                          onClick={() => toggleBlock(u._id, u.isBlocked)}
-                          className={`rounded-2xl px-4 py-2 text-sm font-extrabold text-white transition ${
-                            u.isBlocked
-                              ? "bg-emerald-600 hover:bg-emerald-700"
-                              : "bg-rose-600 hover:bg-rose-700"
-                          }`}
-                          type="button"
-                        >
-                          {u.isBlocked ? "Unblock" : "Block"}
-                        </button>
+
+                      <td className="px-6 py-5">
+                        <div className="font-semibold text-slate-900">{t.customerName}</div>
+                        <div className="text-xs text-slate-500">{t.customerEmail}</div>
+                      </td>
+
+                      <td className="px-6 py-5">
+                        <div className="font-semibold text-slate-900">{t.brokerName}</div>
+                        <div className="text-xs text-slate-500">{t.brokerEmail}</div>
+                      </td>
+
+                      <td className="px-6 py-5 text-slate-700">{t.vehicleTitle}</td>
+                      <td className="px-6 py-5 font-bold text-slate-900">{fmt(t.amount)}</td>
+
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 w-fit">
+                            {t.status}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            Payment: {t.paymentStatus}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-5 text-slate-600">
+                        {new Date(t.createdAt).toLocaleDateString()}
                       </td>
                     </tr>
                   ))
