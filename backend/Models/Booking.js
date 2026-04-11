@@ -26,8 +26,14 @@ const bookingSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "confirmed", "cancelled"],
+      enum: ["pending", "confirmed", "cancelled", "expired"],
       default: "pending",
+      index: true,
+    },
+
+    pendingUntil: {
+      type: Date,
+      default: null,
       index: true,
     },
   },

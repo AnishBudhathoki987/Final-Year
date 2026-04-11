@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
+  FaHome,
   FaCarSide,
   FaClipboardList,
   FaShoppingCart,
-  FaUser,
   FaSignOutAlt,
   FaCalendarAlt,
   FaCheckCircle,
@@ -13,7 +13,6 @@ import {
   FaMoneyBillWave,
   FaBalanceScale,
   FaArrowRight,
-  FaArrowLeft,
 } from "react-icons/fa";
 
 const fmt = (n) => `NPR ${Number(n || 0).toLocaleString("en-US")}`;
@@ -193,13 +192,21 @@ export default function UserDashboard({ user, setUser }) {
                 </div>
               </div>
             </div>
+
+            <button
+              onClick={() => navigate("/")}
+              className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+              type="button"
+            >
+              <FaHome /> Go to Website
+            </button>
           </div>
 
           <nav className="p-4 space-y-2">
             <SideLink icon={<FaClipboardList />} label="Dashboard" to="/user/dashboard" active />
             <SideLink icon={<FaCalendarAlt />} label="My Bookings" to="/my-bookings" />
             <SideLink icon={<FaShoppingCart />} label="My Purchases" to="/my-purchases" />
-            <SideLink icon={<FaUser />} label="Profile" to="/profile" />
+            <SideLink icon={<FaMoneyBillWave />} label="My Payments" to="/my-payments" />
           </nav>
 
           <div className="mt-auto p-4">
@@ -232,13 +239,19 @@ export default function UserDashboard({ user, setUser }) {
               </p>
             </div>
 
-            <button
-              onClick={() => navigate(-1)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
-              type="button"
-            >
-              <FaArrowLeft /> Back
-            </button>
+            <div className="bg-white border border-slate-100 rounded-3xl px-4 py-3 shadow-[0_25px_70px_rgba(0,0,0,0.06)] flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-slate-100 grid place-items-center font-bold text-slate-700">
+                {user?.name?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || "U"}
+              </div>
+              <div className="leading-tight">
+                <div className="text-sm font-extrabold text-slate-900">
+                  {user?.name || user?.username || "User"}
+                </div>
+                <div className="text-xs font-bold text-blue-600 tracking-wide">
+                  CARFUSION USER
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Stats */}
@@ -313,17 +326,20 @@ export default function UserDashboard({ user, setUser }) {
           <div className="mt-10 rounded-3xl bg-white border border-slate-100 shadow-[0_25px_70px_rgba(0,0,0,0.06)] p-6">
             <h2 className="text-2xl font-extrabold text-slate-900">Quick Actions</h2>
 
-            <div className="mt-6 grid md:grid-cols-3 gap-4">
+            <div className="mt-6 grid md:grid-cols-4 gap-4">
               <QuickBtn to="/vehicles" icon={<FaCarSide />} label="Browse Vehicles" />
               <QuickBtn to="/compare" icon={<FaBalanceScale />} label="Compare Vehicles" />
               <QuickBtn to="/my-bookings" icon={<FaCalendarAlt />} label="View My Bookings" />
+              <QuickBtn to="/my-payments" icon={<FaMoneyBillWave />} label="My Payments" />
             </div>
           </div>
 
           {/* Mobile quick links */}
           <div className="md:hidden mt-8 grid grid-cols-2 gap-4">
+            <QuickBtnSmall to="/" label="Go to Website" />
             <QuickBtnSmall to="/my-bookings" label="My Bookings" />
             <QuickBtnSmall to="/my-purchases" label="My Purchases" />
+            <QuickBtnSmall to="/my-payments" label="My Payments" />
             <QuickBtnSmall to="/vehicles" label="Browse" />
             <button
               onClick={handleLogout}

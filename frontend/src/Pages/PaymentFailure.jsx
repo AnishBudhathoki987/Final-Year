@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 export default function PaymentFailure() {
   const [searchParams] = useSearchParams();
   const message = searchParams.get("message");
+  const bookingId = searchParams.get("bookingId");
 
   return (
     <div className="min-h-screen bg-[#f6f7fb] flex items-center justify-center px-4">
@@ -35,6 +36,15 @@ export default function PaymentFailure() {
           >
             Back to Vehicles
           </Link>
+
+          {bookingId && (
+            <Link
+              to="/my-bookings"
+              className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-100"
+            >
+              Retry from My Bookings
+            </Link>
+          )}
         </div>
       </div>
     </div>

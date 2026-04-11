@@ -17,6 +17,14 @@ const diffDays = (start, end) => {
   return Math.ceil(ms / (1000 * 60 * 60 * 24));
 };
 
+const isExpiredPending = (booking) => {
+  return (
+    booking.status === "pending" &&
+    booking.pendingUntil &&
+    new Date(booking.pendingUntil).getTime() < Date.now()
+  );
+};
+
 /* ---------------- 1) CHECK AVAILABILITY ---------------- */
 router.get("/check", async (req, res) => {
   try {
@@ -44,9 +52,10 @@ router.get("/check", async (req, res) => {
       return res.status(400).json({ message: "This vehicle is not for rent" });
     }
 
+    // ONLY confirmed bookings block availability
     const overlap = await Booking.findOne({
       vehicle: vehicleId,
-      status: { $ne: "cancelled" },
+      status: "confirmed",
       startDate: { $lt: end },
       endDate: { $gt: start },
     });
@@ -89,9 +98,10 @@ router.post("/", protect, authorize("user"), async (req, res) => {
       return res.status(400).json({ message: "Vehicle is not available" });
     }
 
+    // ONLY confirmed bookings block availability
     const overlap = await Booking.findOne({
       vehicle: vehicleId,
-      status: { $ne: "cancelled" },
+      status: "confirmed",
       startDate: { $lt: end },
       endDate: { $gt: start },
     });
@@ -119,6 +129,7 @@ router.post("/", protect, authorize("user"), async (req, res) => {
       days,
       totalPrice,
       status: "pending",
+      pendingUntil: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
     });
 
     const populated = await Booking.findById(booking._id)
@@ -174,7 +185,7 @@ router.get("/broker/mine", protect, authorize("broker"), async (req, res) => {
       .populate({
         path: "vehicle",
         match: { createdBy: req.user._id, type: "rent" },
-        select: "title location images pricePerDay createdBy type",
+        select: "title location images pricePerDay createdBy type numberPlate brand model",
       })
       .populate("user", "username email");
 
@@ -200,7 +211,7 @@ router.get(
       const booking = await Booking.findOne({
         vehicle: req.params.vehicleId,
         user: req.user._id,
-        status: { $ne: "cancelled" },
+        status: { $in: ["pending", "confirmed"] },
         endDate: { $gte: today },
       })
         .sort({ startDate: 1 })

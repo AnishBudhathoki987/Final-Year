@@ -181,14 +181,13 @@ export default function Home({ user }) {
 
             <h1 className="mt-6 text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900">
               Rent or Buy Cars Across Nepal —{" "}
-              <span className="text-blue-600">All in One Platform</span>
+              <span className="text-slate-900">All in One Platform</span>
             </h1>
 
             <p className="mt-4 text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
               Connect with verified brokers and sellers. Experience secure
               payments via{" "}
-              <span className="font-semibold text-emerald-600">eSewa</span> &{" "}
-              <span className="font-semibold text-purple-600">Khalti</span> for a
+              <span className="font-semibold text-emerald-600">eSewa</span> for a
               hassle-free journey.
             </p>
 
@@ -210,9 +209,9 @@ export default function Home({ user }) {
           </div>
 
           {/* ================= SEARCH CARD ================= */}
-          <div className="mt-10 bg-white rounded-3xl shadow-[0_18px_60px_rgba(0,0,0,0.06)] border border-slate-100 overflow-hidden">
+          <div className="mt-8 bg-white rounded-2xl shadow-[0_14px_40px_rgba(0,0,0,0.05)] border border-slate-100 overflow-hidden">
             {/* tabs */}
-            <div className="px-6 pt-6 flex items-center gap-3">
+            <div className="px-5 pt-5 flex items-center gap-2">
               <button
                 onClick={() => setTab("all")}
                 className={`rounded-full px-4 py-2 text-xs font-bold transition ${
@@ -248,8 +247,8 @@ export default function Home({ user }) {
             </div>
 
             {/* fields */}
-            <div className="px-6 pb-6 pt-4 grid md:grid-cols-4 gap-4">
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <div className="px-5 pb-5 pt-3 grid md:grid-cols-4 gap-3">
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-2.5">
                 <p className="text-[10px] font-bold text-slate-400">LOCATION</p>
                 <div className="mt-2 flex items-center gap-2 text-sm">
                   <FaMapMarkerAlt className="text-slate-400" />
@@ -262,7 +261,7 @@ export default function Home({ user }) {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-2.5">
                 <p className="text-[10px] font-bold text-slate-400">TYPE</p>
                 <div className="mt-2 flex items-center gap-2 text-sm">
                   <FaCarSide className="text-slate-400" />
@@ -281,7 +280,7 @@ export default function Home({ user }) {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-2.5">
                 <p className="text-[10px] font-bold text-slate-400">
                   PRICE RANGE
                 </p>
@@ -311,13 +310,13 @@ export default function Home({ user }) {
               <div className="flex gap-3">
                 <button
                   onClick={handleSearch}
-                  className="flex-1 rounded-2xl bg-blue-600 px-5 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                  className="flex-1 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition flex items-center justify-center gap-2"
                 >
                   <FaSearch /> Search Now
                 </button>
                 <button
                   onClick={resetFilters}
-                  className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
                   type="button"
                 >
                   Reset

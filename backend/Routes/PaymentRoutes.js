@@ -46,6 +46,20 @@ router.post("/esewa/initiate", protect, async (req, res) => {
       return res.status(400).json({ message: "Booking is already paid and confirmed" });
     }
 
+    // expire old pending booking
+    if (
+      booking.status === "pending" &&
+      booking.pendingUntil &&
+      new Date(booking.pendingUntil).getTime() < Date.now()
+    ) {
+      booking.status = "expired";
+      await booking.save();
+
+      return res.status(400).json({
+        message: "This booking has expired. Please create a new booking.",
+      });
+    }
+
     const existingSuccessPayment = await Payment.findOne({
       booking: bookingId,
       payment_status: "success",
@@ -102,7 +116,7 @@ router.post("/esewa/initiate", protect, async (req, res) => {
   }
 });
 
-// eSewa SUCCESS - VERIFY WITH ESEWA BEFORE UPDATING DB
+// eSewa SUCCESS
 router.get("/esewa/success", async (req, res) => {
   try {
     const { data } = req.query;
@@ -121,7 +135,6 @@ router.get("/esewa/success", async (req, res) => {
       return res.redirect(`${process.env.CLIENT_URL}/payment-failure?message=Payment record not found`);
     }
 
-    // Prevent duplicate processing
     if (payment.payment_status === "success") {
       return res.redirect(
         `${process.env.CLIENT_URL}/payment-success?paymentId=${payment._id}&bookingId=${payment.booking}`
