@@ -9,7 +9,6 @@ import {
   FaArrowLeft,
   FaCarSide,
   FaClipboardList,
-  FaMoneyBillWave,
   FaChartLine,
 } from "react-icons/fa";
 
@@ -139,13 +138,14 @@ export default function AdminDashboard({ user }) {
               />
             </div>
 
-            <div className="mt-6 grid lg:grid-cols-2 gap-6">
+            <div className="mt-6 grid lg:grid-cols-3 gap-6 items-start">
               <QuickLinkCard
                 title="Transactions"
                 text="View all booking and purchase transactions."
                 to="/admin/transactions"
               />
-              <div className="rounded-3xl bg-white border border-slate-100 shadow-[0_18px_60px_rgba(0,0,0,0.06)] p-6">
+
+              <div className="lg:col-span-2 rounded-3xl bg-white border border-slate-100 shadow-[0_18px_60px_rgba(0,0,0,0.06)] p-6">
                 <div className="flex items-center gap-3">
                   <div className="h-11 w-11 rounded-2xl bg-blue-50 border border-blue-100 grid place-items-center text-blue-600">
                     <FaChartLine />
@@ -215,7 +215,8 @@ export default function AdminDashboard({ user }) {
                       {item.vehicle?.title || "Vehicle"}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {item.user?.username || "User"} • NPR {Number(item.totalPrice || 0).toLocaleString()}
+                      {item.user?.username || "User"} • NPR{" "}
+                      {Number(item.totalPrice || 0).toLocaleString()}
                     </div>
                   </div>
                 )}
@@ -246,7 +247,7 @@ function QuickLinkCard({ title, text, to, primary = false }) {
   return (
     <Link
       to={to}
-      className={`rounded-3xl border p-6 shadow-[0_18px_60px_rgba(0,0,0,0.06)] transition ${
+      className={`self-start rounded-3xl border p-6 shadow-[0_18px_60px_rgba(0,0,0,0.06)] transition ${
         primary
           ? "bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
           : "bg-white border-slate-100 text-slate-900 hover:bg-slate-50"

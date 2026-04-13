@@ -39,6 +39,7 @@ import AdminUsers from "./Pages/AdminUsers";
 import AdminBrokers from "./Pages/AdminBrokers";
 import AdminVehicles from "./Pages/AdminVehicles";
 import AdminTransactions from "./Pages/AdminTransactions";
+import BrokerOrderHistory from "./Pages/BrokerOrderHistory";
 
 function Layout({ user, setUser }) {
   const location = useLocation();
@@ -243,6 +244,10 @@ function Layout({ user, setUser }) {
           }
         />
 
+        <Route
+          path="/broker/orders/history/:numberPlate"
+          element={<BrokerOrderHistory user={user} />}
+        />
         <Route path="/broker/dashboard" element={<BrokerDashboard user={user} setUser={setUser} />} />
         <Route path="/broker/add-vehicle" element={<AddVehicle user={user} />} />
         <Route path="/broker/my-vehicles" element={<ManageVehicles user={user} />} />

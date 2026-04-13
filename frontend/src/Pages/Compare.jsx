@@ -50,7 +50,8 @@ export default function Compare({ user }) {
   const formatNPR = (n) => `NPR ${Number(n || 0).toLocaleString("en-US")}`;
 
   const badgeText = (v) => (v?.type === "rent" ? "FOR RENT" : "FOR SALE");
-  const badgeClass = (v) => (v?.type === "rent" ? "bg-blue-600" : "bg-emerald-500");
+  const badgeClass = (v) =>
+    v?.type === "rent" ? "bg-blue-600" : "bg-emerald-500";
 
   const priceLabel = (v) => (v?.type === "rent" ? "per day" : "total");
   const priceValue = (v) => (v?.type === "rent" ? v?.pricePerDay : v?.price);
@@ -69,7 +70,9 @@ export default function Compare({ user }) {
 
       setLoading(true);
       try {
-        const results = await Promise.all(ids.map((id) => axios.get(`/api/vehicles/${id}`)));
+        const results = await Promise.all(
+          ids.map((id) => axios.get(`/api/vehicles/${id}`))
+        );
         const list = results.map((r) => r.data?.vehicle ?? r.data).filter(Boolean);
         setVehicles(list);
       } catch (e) {
@@ -88,7 +91,7 @@ export default function Compare({ user }) {
     return ids.map((id) => map.get(id) || null);
   }, [ids, vehicles]);
 
-  // Spec rows (like your screenshot)
+  // Spec rows
   const specRows = useMemo(() => {
     const a = slots[0];
     const b = slots[1];
@@ -101,22 +104,61 @@ export default function Compare({ user }) {
     };
 
     return [
-      { label: "Vehicle Type", icon: <FaCarSide />, a: a?.category || a?.type || "—", b: b?.category || b?.type || "—" },
+      {
+        label: "Vehicle Type",
+        icon: <FaCarSide />,
+        a: a?.category || a?.type || "—",
+        b: b?.category || b?.type || "—",
+      },
       { label: "Brand", icon: <FaTag />, a: pick(a, "brand"), b: pick(b, "brand") },
       { label: "Model", icon: <FaTag />, a: pick(a, "model"), b: pick(b, "model") },
       { label: "Year", icon: <FaTag />, a: pick(a, "year"), b: pick(b, "year") },
-      { label: "Fuel Type", icon: <FaGasPump />, a: pick(a, "fuelType"), b: pick(b, "fuelType") },
-      { label: "Transmission", icon: <FaCogs />, a: pick(a, "transmission"), b: pick(b, "transmission") },
-      { label: "Seating Capacity", icon: <FaUsers />, a: a?.seats ? `${a.seats} persons` : "—", b: b?.seats ? `${b.seats} persons` : "—" },
+      {
+        label: "Fuel Type",
+        icon: <FaGasPump />,
+        a: pick(a, "fuelType"),
+        b: pick(b, "fuelType"),
+      },
+      {
+        label: "Transmission",
+        icon: <FaCogs />,
+        a: pick(a, "transmission"),
+        b: pick(b, "transmission"),
+      },
+      {
+        label: "Seating Capacity",
+        icon: <FaUsers />,
+        a: a?.seats ? `${a.seats} persons` : "—",
+        b: b?.seats ? `${b.seats} persons` : "—",
+      },
       {
         label: "Mileage",
         icon: <FaTachometerAlt />,
-        a: a?.mileage ? `${Number(a.mileage).toLocaleString("en-US")} km` : "—",
-        b: b?.mileage ? `${Number(b.mileage).toLocaleString("en-US")} km` : "—",
+        a: a?.mileage
+          ? `${Number(a.mileage).toLocaleString("en-US")} km`
+          : "—",
+        b: b?.mileage
+          ? `${Number(b.mileage).toLocaleString("en-US")} km`
+          : "—",
       },
-      { label: "Location", icon: <FaMapMarkerAlt />, a: pick(a, "location"), b: pick(b, "location") },
-      { label: "Availability", icon: <FaCheckCircle />, a: a ? (a.isAvailable ? "Available" : "Not available") : "—", b: b ? (b.isAvailable ? "Available" : "Not available") : "—" },
-      { label: "Daily Rate / Price", icon: <FaTag />, a: a ? formatNPR(priceValue(a)) : "—", b: b ? formatNPR(priceValue(b)) : "—" },
+      {
+        label: "Location",
+        icon: <FaMapMarkerAlt />,
+        a: pick(a, "location"),
+        b: pick(b, "location"),
+      },
+      {
+        label: "Availability",
+        icon: <FaCheckCircle />,
+        a: a ? (a.isAvailable ? "Available" : "Not available") : "—",
+        b: b ? (b.isAvailable ? "Available" : "Not available") : "—",
+      },
+      {
+        label: "Daily Rate / Price",
+        icon: <FaTag />,
+        a: a ? formatNPR(priceValue(a)) : "—",
+        b: b ? formatNPR(priceValue(b)) : "—",
+      },
     ];
   }, [slots]);
 
@@ -153,7 +195,9 @@ export default function Compare({ user }) {
 
         {/* Header */}
         <div className="mt-7">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900">Compare Vehicles</h1>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900">
+            Compare Vehicles
+          </h1>
           <p className="mt-2 text-slate-500">
             Analyze specs side-by-side to find your perfect drive for any terrain.
           </p>
@@ -165,9 +209,12 @@ export default function Compare({ user }) {
             <div className="mx-auto h-14 w-14 rounded-3xl bg-blue-50 border border-blue-100 grid place-items-center text-blue-600">
               <FaCarSide className="text-2xl" />
             </div>
-            <h3 className="mt-5 text-2xl font-extrabold text-slate-900">No vehicles selected</h3>
+            <h3 className="mt-5 text-2xl font-extrabold text-slate-900">
+              No vehicles selected
+            </h3>
             <p className="mt-2 text-slate-500">
-              Go to Vehicles page and select <span className="font-extrabold">Compare</span> on two vehicles.
+              Go to Vehicles page and select{" "}
+              <span className="font-extrabold">Compare</span> on two vehicles.
             </p>
             <Link
               to="/vehicles"
@@ -179,16 +226,17 @@ export default function Compare({ user }) {
         ) : (
           <>
             {loading ? (
-              <div className="mt-10 text-slate-500">Loading compared vehicles...</div>
+              <div className="mt-10 text-slate-500">
+                Loading compared vehicles...
+              </div>
             ) : error ? (
               <div className="mt-10 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
                 {error}
               </div>
             ) : (
               <>
-                {/* Top cards like screenshot */}
+                {/* Top cards */}
                 <div className="mt-10 grid lg:grid-cols-2 gap-8">
-                  {/* Slot 1 */}
                   <CompareCard
                     v={slots[0]}
                     onRemove={() => slots[0] && removeFromCompare(slots[0]._id)}
@@ -200,7 +248,6 @@ export default function Compare({ user }) {
                     coverImg={coverImg}
                   />
 
-                  {/* Slot 2 placeholder or card */}
                   {slots[1] ? (
                     <CompareCard
                       v={slots[1]}
@@ -217,7 +264,9 @@ export default function Compare({ user }) {
                       <div className="h-14 w-14 rounded-3xl bg-slate-50 border border-slate-100 grid place-items-center text-slate-400">
                         <FaCarSide className="text-2xl" />
                       </div>
-                      <h3 className="mt-5 text-lg font-extrabold text-slate-900">Select another vehicle</h3>
+                      <h3 className="mt-5 text-lg font-extrabold text-slate-900">
+                        Select another vehicle
+                      </h3>
                       <p className="mt-2 text-sm text-slate-500">
                         Add a vehicle to compare features side-by-side.
                       </p>
@@ -234,7 +283,9 @@ export default function Compare({ user }) {
                 {/* Specs table */}
                 <div className="mt-10 rounded-[28px] bg-white border border-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.06)] overflow-hidden">
                   <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                    <h2 className="text-sm font-extrabold text-slate-900">Technical Specifications</h2>
+                    <h2 className="text-sm font-extrabold text-slate-900">
+                      Technical Specifications
+                    </h2>
 
                     <div className="text-xs font-extrabold text-slate-400 flex items-center gap-8">
                       <span className="text-blue-600">
@@ -248,7 +299,10 @@ export default function Compare({ user }) {
                     <table className="w-full min-w-[760px] text-left">
                       <tbody className="divide-y divide-slate-100">
                         {specRows.map((r) => (
-                          <tr key={r.label} className="hover:bg-slate-50/60 transition">
+                          <tr
+                            key={r.label}
+                            className="hover:bg-slate-50/60 transition"
+                          >
                             <td className="px-6 py-4 w-[280px]">
                               <div className="flex items-center gap-3 text-sm font-bold text-slate-600">
                                 <span className="text-slate-400">{r.icon}</span>
@@ -294,13 +348,27 @@ function CompareCard({
 
   if (!v) return null;
 
+  const handleAction = () => {
+    if (v.type === "rent") {
+      navigate(`/book/${v._id}`);
+    } else {
+      navigate(`/purchase/${v._id}`);
+    }
+  };
+
   return (
     <div className="rounded-[28px] bg-white border border-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.06)] overflow-hidden">
       <div className="relative h-56">
-        <img src={coverImg(v)} alt={v.title} className="h-full w-full object-cover" />
+        <img
+          src={coverImg(v)}
+          alt={v.title}
+          className="h-full w-full object-cover"
+        />
 
         <div
-          className={`absolute top-4 left-4 ${badgeClass(v)} text-white text-xs font-extrabold px-3 py-1.5 rounded-full`}
+          className={`absolute top-4 left-4 ${badgeClass(
+            v
+          )} text-white text-xs font-extrabold px-3 py-1.5 rounded-full`}
         >
           {badgeText(v)}
         </div>
@@ -326,9 +394,15 @@ function CompareCard({
           </div>
 
           <div className="text-right">
-            <p className="text-[11px] font-bold text-slate-500 uppercase">Price</p>
-            <p className="text-sm font-extrabold text-blue-600">{formatNPR(priceValue(v))}</p>
-            <p className="text-[11px] font-bold text-slate-400">{priceLabel(v)}</p>
+            <p className="text-[11px] font-bold text-slate-500 uppercase">
+              Price
+            </p>
+            <p className="text-sm font-extrabold text-blue-600">
+              {formatNPR(priceValue(v))}
+            </p>
+            <p className="text-[11px] font-bold text-slate-400">
+              {priceLabel(v)}
+            </p>
           </div>
         </div>
 
@@ -338,7 +412,11 @@ function CompareCard({
           <MiniSpec icon={<FaUsers />} value={v.seats ? `${v.seats} seats` : "—"} />
           <MiniSpec
             icon={<FaTachometerAlt />}
-            value={v.mileage ? `${Number(v.mileage).toLocaleString("en-US")} km` : "—"}
+            value={
+              v.mileage
+                ? `${Number(v.mileage).toLocaleString("en-US")} km`
+                : "—"
+            }
           />
         </div>
 
@@ -352,7 +430,7 @@ function CompareCard({
           </button>
 
           <button
-            onClick={() => alert(v.type === "rent" ? "Booking in Sprint 3" : "Checkout in Sprint 3")}
+            onClick={handleAction}
             className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 transition"
             type="button"
           >
@@ -370,7 +448,9 @@ function MiniSpec({ icon, value }) {
       <div className="mx-auto h-9 w-9 rounded-2xl bg-slate-50 border border-slate-100 grid place-items-center text-blue-600">
         {icon}
       </div>
-      <p className="mt-2 text-[11px] font-extrabold text-slate-700 truncate">{value}</p>
+      <p className="mt-2 text-[11px] font-extrabold text-slate-700 truncate">
+        {value}
+      </p>
     </div>
   );
 }

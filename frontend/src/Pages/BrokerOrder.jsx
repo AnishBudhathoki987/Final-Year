@@ -13,13 +13,12 @@ import {
   FaTimesCircle,
   FaUser,
   FaChartBar,
-  FaHistory,
+  FaIdCard,
 } from "react-icons/fa";
 
 const fmt = (n) => `NPR ${Number(n || 0).toLocaleString("en-US")}`;
 
 const CARS_PER_PAGE = 4;
-const HISTORY_PER_PAGE = 4;
 
 const normalizeText = (value) =>
   String(value || "")
@@ -59,32 +58,6 @@ const displayModelName = (item) => {
   return "Unknown";
 };
 
-function BookingStatusPill({ status }) {
-  const s = (status || "").toLowerCase();
-
-  if (s === "confirmed") {
-    return (
-      <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-extrabold text-emerald-700 border border-emerald-100">
-        <FaCheckCircle /> Confirmed
-      </span>
-    );
-  }
-
-  if (s === "cancelled") {
-    return (
-      <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-500 border border-slate-200">
-        Cancelled
-      </span>
-    );
-  }
-
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-extrabold text-amber-700 border border-amber-100">
-      Pending
-    </span>
-  );
-}
-
 function PurchaseStatusPill({ status }) {
   const s = (status || "").toLowerCase();
 
@@ -106,12 +79,12 @@ function PurchaseStatusPill({ status }) {
 
   return (
     <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-extrabold text-blue-700 border border-blue-100">
-        Processing
-      </span>
-    );
-  }
+      Processing
+    </span>
+  );
+}
 
-export default function BrokerOrders({ user }) {
+export default function BrokerOrder({ user }) {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
@@ -123,10 +96,7 @@ export default function BrokerOrders({ user }) {
   const [error, setError] = useState("");
 
   const [selectedModel, setSelectedModel] = useState(null);
-  const [selectedCar, setSelectedCar] = useState(null);
-
   const [carsPage, setCarsPage] = useState(1);
-  const [historyPage, setHistoryPage] = useState(1);
 
   const fetchData = async () => {
     if (!token) {
@@ -211,15 +181,17 @@ export default function BrokerOrders({ user }) {
       });
 
       if (bookingKey !== selectedKey) return;
-      if (!v?._id) return;
 
-      if (!carMap.has(v._id)) {
-        carMap.set(v._id, {
+      const plateKey = String(v.numberPlate || "").trim().toUpperCase();
+      if (!plateKey) return;
+
+      if (!carMap.has(plateKey)) {
+        carMap.set(plateKey, {
           _id: v._id,
           title: v.title || "Vehicle",
           brand: v.brand || "",
           model: v.model || "",
-          numberPlate: v.numberPlate || "No plate",
+          numberPlate: plateKey,
           location: v.location || "—",
           image:
             v.images?.[0] ||
@@ -229,7 +201,7 @@ export default function BrokerOrders({ user }) {
         });
       }
 
-      const existing = carMap.get(v._id);
+      const existing = carMap.get(plateKey);
       existing.bookingCount += 1;
       existing.totalRevenue += Number(b.totalPrice || 0);
     });
@@ -237,9 +209,10 @@ export default function BrokerOrders({ user }) {
     return Array.from(carMap.values()).sort((a, b) => b.bookingCount - a.bookingCount);
   }, [bookings, selectedModel]);
 
-  const totalCarsPages = useMemo(() => {
-    return Math.ceil(carsUnderSelectedModel.length / CARS_PER_PAGE) || 1;
-  }, [carsUnderSelectedModel]);
+  const totalCarsPages = useMemo(
+    () => Math.ceil(carsUnderSelectedModel.length / CARS_PER_PAGE) || 1,
+    [carsUnderSelectedModel]
+  );
 
   const paginatedCars = useMemo(() => {
     const start = (carsPage - 1) * CARS_PER_PAGE;
@@ -247,36 +220,9 @@ export default function BrokerOrders({ user }) {
     return carsUnderSelectedModel.slice(start, end);
   }, [carsUnderSelectedModel, carsPage]);
 
-  const selectedCarBookings = useMemo(() => {
-    if (!selectedCar?._id) return [];
-    return bookings.filter((b) => b?.vehicle?._id === selectedCar._id);
-  }, [bookings, selectedCar]);
-
-  const totalHistoryPages = useMemo(() => {
-    return Math.ceil(selectedCarBookings.length / HISTORY_PER_PAGE) || 1;
-  }, [selectedCarBookings]);
-
-  const paginatedHistory = useMemo(() => {
-    const start = (historyPage - 1) * HISTORY_PER_PAGE;
-    const end = start + HISTORY_PER_PAGE;
-    return selectedCarBookings.slice(start, end);
-  }, [selectedCarBookings, historyPage]);
-
   useEffect(() => {
     setCarsPage(1);
-    setHistoryPage(1);
-    setSelectedCar(null);
   }, [selectedModel]);
-
-  useEffect(() => {
-    setHistoryPage(1);
-  }, [selectedCar]);
-
-  useEffect(() => {
-    if (!selectedCar && carsUnderSelectedModel.length > 0) {
-      setSelectedCar(carsUnderSelectedModel[0]);
-    }
-  }, [carsUnderSelectedModel, selectedCar]);
 
   const handlePurchaseAction = async (id, action) => {
     try {
@@ -297,16 +243,12 @@ export default function BrokerOrders({ user }) {
       model: item.model,
       title: item.title,
     });
-    setSelectedCar(null);
     setCarsPage(1);
-    setHistoryPage(1);
     setTab("bookings");
   };
 
-  const selectCar = (car) => {
-    setSelectedCar(car);
-    setHistoryPage(1);
-    setTab("bookings");
+  const openCarHistory = (car) => {
+    navigate(`/broker/orders/history/${encodeURIComponent(car.numberPlate)}`);
   };
 
   return (
@@ -318,8 +260,7 @@ export default function BrokerOrders({ user }) {
               Orders
             </h1>
             <p className="mt-2 text-slate-500">
-              View bookings on your rent vehicles and purchase requests on your
-              sale vehicles.
+              View bookings on your rent vehicles and purchase requests on your sale vehicles.
             </p>
           </div>
 
@@ -357,15 +298,13 @@ export default function BrokerOrders({ user }) {
         )}
 
         <div className="mt-8 rounded-3xl bg-white border border-slate-100 shadow-[0_18px_60px_rgba(0,0,0,0.06)] p-6">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <h2 className="text-lg font-extrabold text-slate-900">
-                Top Vehicle Models
-              </h2>
-              <p className="text-sm text-slate-500">
-                Click a model to view all cars under that model
-              </p>
-            </div>
+          <div>
+            <h2 className="text-lg font-extrabold text-slate-900">
+              Top Vehicle Models
+            </h2>
+            <p className="text-sm text-slate-500">
+              Click a model to view all cars under that model
+            </p>
           </div>
 
           {loading ? (
@@ -495,10 +434,9 @@ export default function BrokerOrders({ user }) {
                     <div className="grid md:grid-cols-2 gap-4">
                       {paginatedCars.map((car) => (
                         <CarCard
-                          key={car._id}
+                          key={car.numberPlate}
                           car={car}
-                          isActive={selectedCar?._id === car._id}
-                          onClick={() => selectCar(car)}
+                          onClick={() => openCarHistory(car)}
                         />
                       ))}
                     </div>
@@ -518,45 +456,6 @@ export default function BrokerOrders({ user }) {
                     )}
                   </>
                 )}
-
-                {!selectedCar ? (
-                  <EmptyState text="Click a car to see its booking history." />
-                ) : selectedCarBookings.length === 0 ? (
-                  <EmptyState
-                    text={`No booking history found for ${selectedCar.title}.`}
-                  />
-                ) : (
-                  <>
-                    <div className="rounded-3xl bg-white border border-slate-100 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.06)]">
-                      <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                        <FaHistory className="text-blue-600" />
-                        Booking History for {selectedCar.title}
-                      </h3>
-                    </div>
-
-                    {paginatedHistory.map((b) => (
-                      <BookingCard key={b._id} booking={b} />
-                    ))}
-
-                    {selectedCarBookings.length > HISTORY_PER_PAGE && (
-                      <PaginationBar
-                        currentPage={historyPage}
-                        totalPages={totalHistoryPages}
-                        totalItems={selectedCarBookings.length}
-                        perPage={HISTORY_PER_PAGE}
-                        onPrev={() =>
-                          setHistoryPage((prev) => Math.max(prev - 1, 1))
-                        }
-                        onNext={() =>
-                          setHistoryPage((prev) =>
-                            Math.min(prev + 1, totalHistoryPages)
-                          )
-                        }
-                        label="bookings"
-                      />
-                    )}
-                  </>
-                )}
               </>
             )}
           </div>
@@ -569,12 +468,8 @@ export default function BrokerOrders({ user }) {
                 <PurchaseCard
                   key={p._id}
                   purchase={p}
-                  onConfirm={() =>
-                    handlePurchaseAction(p._id, "broker-confirm")
-                  }
-                  onCancel={() =>
-                    handlePurchaseAction(p._id, "broker-cancel")
-                  }
+                  onConfirm={() => handlePurchaseAction(p._id, "broker-confirm")}
+                  onCancel={() => handlePurchaseAction(p._id, "broker-cancel")}
                 />
               ))
             )}
@@ -585,15 +480,11 @@ export default function BrokerOrders({ user }) {
   );
 }
 
-function CarCard({ car, isActive, onClick }) {
+function CarCard({ car, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`cursor-pointer rounded-3xl border p-5 shadow-[0_18px_60px_rgba(0,0,0,0.06)] transition ${
-        isActive
-          ? "bg-blue-50/70 border-blue-200"
-          : "bg-white border-slate-100 hover:bg-slate-50"
-      }`}
+      className="cursor-pointer rounded-3xl border p-5 shadow-[0_18px_60px_rgba(0,0,0,0.06)] transition bg-white border-slate-100 hover:bg-slate-50"
     >
       <div className="flex gap-4">
         <img
@@ -605,10 +496,15 @@ function CarCard({ car, isActive, onClick }) {
         <div className="flex-1">
           <h4 className="text-lg font-extrabold text-slate-900">{car.title}</h4>
 
-          <div className="mt-2 text-sm text-slate-600 font-semibold">
+          <div className="mt-2 space-y-2 text-sm text-slate-600 font-semibold">
             <p className="inline-flex items-center gap-2">
               <FaMapMarkerAlt className="text-slate-400" />
               {car.location}
+            </p>
+
+            <p className="inline-flex items-center gap-2">
+              <FaIdCard className="text-slate-400" />
+              {car.numberPlate}
             </p>
           </div>
 
@@ -619,77 +515,6 @@ function CarCard({ car, isActive, onClick }) {
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700">
               {fmt(car.totalRevenue)}
             </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function BookingCard({ booking }) {
-  const v = booking.vehicle || {};
-  const u = booking.user || {};
-  const img =
-    v.images?.[0] ||
-    "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=1200&auto=format&fit=crop";
-
-  return (
-    <div className="rounded-3xl bg-white border border-slate-100 shadow-[0_18px_60px_rgba(0,0,0,0.06)] p-5">
-      <div className="flex flex-col md:flex-row gap-5">
-        <img
-          src={img}
-          alt={v.title || "Vehicle"}
-          className="h-32 w-full md:w-44 rounded-2xl object-cover border border-slate-100"
-        />
-
-        <div className="flex-1">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xl font-extrabold text-slate-900">
-                {v.title || "Vehicle"}
-              </p>
-
-              <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-slate-500 font-semibold">
-                <span className="inline-flex items-center gap-2">
-                  <FaUser className="text-slate-400" />
-                  {u.username || u.name || "User"}
-                </span>
-
-                <span className="inline-flex items-center gap-2">
-                  <FaMapMarkerAlt className="text-slate-400" />
-                  {booking.pickupLocation || v.location || "—"}
-                </span>
-
-                <span className="inline-flex items-center gap-2">
-                  <FaCalendarAlt className="text-slate-400" />
-                  {booking.startDate
-                    ? new Date(booking.startDate).toLocaleDateString()
-                    : "—"}{" "}
-                  -{" "}
-                  {booking.endDate
-                    ? new Date(booking.endDate).toLocaleDateString()
-                    : "—"}
-                </span>
-              </div>
-            </div>
-
-            <div className="text-right">
-              <p className="text-lg font-extrabold text-slate-900">
-                {fmt(booking.totalPrice)}
-              </p>
-              <div className="mt-2">
-                <BookingStatusPill status={booking.status} />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <Link
-              to={`/vehicles/${v._id}`}
-              className="inline-flex items-center gap-2 rounded-2xl bg-blue-50 px-4 py-2 text-xs font-extrabold text-blue-700 hover:bg-blue-100 transition"
-            >
-              <FaCarSide /> View Vehicle
-            </Link>
           </div>
         </div>
       </div>
