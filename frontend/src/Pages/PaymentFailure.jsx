@@ -4,6 +4,9 @@ export default function PaymentFailure() {
   const [searchParams] = useSearchParams();
   const message = searchParams.get("message");
   const bookingId = searchParams.get("bookingId");
+  const type = searchParams.get("type");
+
+  const isBrokerSubscription = type === "broker-subscription";
 
   return (
     <div className="min-h-screen bg-[#f6f7fb] flex items-center justify-center px-4">
@@ -13,7 +16,9 @@ export default function PaymentFailure() {
           Payment Failed
         </h1>
         <p className="mt-2 text-slate-500">
-          Your booking payment could not be completed.
+          {isBrokerSubscription
+            ? "Your broker subscription payment could not be completed."
+            : "Your booking payment could not be completed."}
         </p>
 
         {message && (
@@ -23,27 +28,47 @@ export default function PaymentFailure() {
         )}
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link
-            to="/my-bookings"
-            className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700"
-          >
-            Go to My Bookings
-          </Link>
+          {isBrokerSubscription ? (
+            <>
+              <Link
+                to="/broker-subscription"
+                className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700"
+              >
+                Retry Subscription
+              </Link>
 
-          <Link
-            to="/vehicles"
-            className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
-          >
-            Back to Vehicles
-          </Link>
+              <Link
+                to="/"
+                className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Back to Home
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/my-bookings"
+                className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700"
+              >
+                Go to My Bookings
+              </Link>
 
-          {bookingId && (
-            <Link
-              to="/my-bookings"
-              className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-100"
-            >
-              Retry from My Bookings
-            </Link>
+              <Link
+                to="/vehicles"
+                className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Back to Vehicles
+              </Link>
+
+              {bookingId && (
+                <Link
+                  to="/my-bookings"
+                  className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-100"
+                >
+                  Retry from My Bookings
+                </Link>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -27,7 +27,11 @@ const Login = ({ setUser }) => {
       if (res.data.role === "admin") {
         navigate("/admin/dashboard");
       } else if (res.data.role === "broker") {
-        navigate("/broker/dashboard");
+        if (res.data.hasBrokerSubscription) {
+          navigate("/broker/dashboard");
+        } else {
+          navigate("/broker-subscription");
+        }
       } else {
         navigate("/user/dashboard");
       }

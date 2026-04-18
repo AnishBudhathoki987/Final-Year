@@ -13,6 +13,7 @@ import {
   FaMoneyBillWave,
   FaBalanceScale,
   FaArrowRight,
+  FaBell,
 } from "react-icons/fa";
 
 const fmt = (n) => `NPR ${Number(n || 0).toLocaleString("en-US")}`;
@@ -94,6 +95,7 @@ export default function UserDashboard({ user, setUser }) {
   const [bookings, setBookings] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [error, setError] = useState("");
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     if (!user) {
@@ -139,6 +141,26 @@ export default function UserDashboard({ user, setUser }) {
 
     if (user?.role === "user") fetchDashboardData();
   }, [user, navigate]);
+
+  useEffect(() => {
+    const loadNotifications = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token || user?.role !== "user") return;
+
+        const res = await axios.get("/api/notifications/mine", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setUnreadNotifications(res.data?.unreadCount || 0);
+      } catch (error) {
+        console.log(error);
+        setUnreadNotifications(0);
+      }
+    };
+
+    loadNotifications();
+  }, [user]);
 
   const stats = useMemo(() => {
     const totalBookings = bookings.length;
@@ -207,6 +229,7 @@ export default function UserDashboard({ user, setUser }) {
             <SideLink icon={<FaCalendarAlt />} label="My Bookings" to="/my-bookings" />
             <SideLink icon={<FaShoppingCart />} label="My Purchases" to="/my-purchases" />
             <SideLink icon={<FaMoneyBillWave />} label="My Payments" to="/my-payments" />
+            <SideLink icon={<FaBell />} label="Notifications" to="/my-notifications" />
           </nav>
 
           <div className="mt-auto p-4">
@@ -239,16 +262,31 @@ export default function UserDashboard({ user, setUser }) {
               </p>
             </div>
 
-            <div className="bg-white border border-slate-100 rounded-3xl px-4 py-3 shadow-[0_25px_70px_rgba(0,0,0,0.06)] flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-slate-100 grid place-items-center font-bold text-slate-700">
-                {user?.name?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || "U"}
-              </div>
-              <div className="leading-tight">
-                <div className="text-sm font-extrabold text-slate-900">
-                  {user?.name || user?.username || "User"}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate("/my-notifications")}
+                className="relative h-12 w-12 rounded-2xl bg-white border border-slate-100 shadow-[0_25px_70px_rgba(0,0,0,0.06)] grid place-items-center text-slate-700 hover:bg-slate-50 transition"
+                type="button"
+              >
+                <FaBell />
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[22px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-extrabold grid place-items-center">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </button>
+
+              <div className="bg-white border border-slate-100 rounded-3xl px-4 py-3 shadow-[0_25px_70px_rgba(0,0,0,0.06)] flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-slate-100 grid place-items-center font-bold text-slate-700">
+                  {user?.name?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || "U"}
                 </div>
-                <div className="text-xs font-bold text-blue-600 tracking-wide">
-                  CARFUSION USER
+                <div className="leading-tight">
+                  <div className="text-sm font-extrabold text-slate-900">
+                    {user?.name || user?.username || "User"}
+                  </div>
+                  <div className="text-xs font-bold text-blue-600 tracking-wide">
+                    CARFUSION USER
+                  </div>
                 </div>
               </div>
             </div>
@@ -340,6 +378,7 @@ export default function UserDashboard({ user, setUser }) {
             <QuickBtnSmall to="/my-bookings" label="My Bookings" />
             <QuickBtnSmall to="/my-purchases" label="My Purchases" />
             <QuickBtnSmall to="/my-payments" label="My Payments" />
+            <QuickBtnSmall to="/my-notifications" label="Notifications" />
             <QuickBtnSmall to="/vehicles" label="Browse" />
             <button
               onClick={handleLogout}

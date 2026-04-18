@@ -15,8 +15,9 @@ export default function AddVehicle({ user }) {
 
   // ✅ Protect page: only broker
   useEffect(() => {
-    if (!user) navigate("/login");
-    else if (user.role !== "broker") navigate("/unauthorized");
+    if (!user) return navigate("/login");
+    if (user.role !== "broker") return navigate("/unauthorized");
+    if (!user.hasBrokerSubscription) return navigate("/broker-subscription");
   }, [user, navigate]);
 
   const [listingType, setListingType] = useState("rent"); // rent | sale
@@ -174,7 +175,7 @@ export default function AddVehicle({ user }) {
       console.log(err);
       setError(
         err?.response?.data?.message ||
-          "Failed to publish listing. Check upload route and vehicle route."
+        "Failed to publish listing. Check upload route and vehicle route."
       );
     } finally {
       setSubmitting(false);
@@ -216,22 +217,20 @@ export default function AddVehicle({ user }) {
                 <button
                   type="button"
                   onClick={() => setListingType("rent")}
-                  className={`px-6 py-2 rounded-2xl text-sm font-extrabold transition ${
-                    listingType === "rent"
-                      ? "bg-white text-blue-600 shadow"
-                      : "text-slate-600"
-                  }`}
+                  className={`px-6 py-2 rounded-2xl text-sm font-extrabold transition ${listingType === "rent"
+                    ? "bg-white text-blue-600 shadow"
+                    : "text-slate-600"
+                    }`}
                 >
                   For Rent
                 </button>
                 <button
                   type="button"
                   onClick={() => setListingType("sale")}
-                  className={`px-6 py-2 rounded-2xl text-sm font-extrabold transition ${
-                    listingType === "sale"
-                      ? "bg-white text-blue-600 shadow"
-                      : "text-slate-600"
-                  }`}
+                  className={`px-6 py-2 rounded-2xl text-sm font-extrabold transition ${listingType === "sale"
+                    ? "bg-white text-blue-600 shadow"
+                    : "text-slate-600"
+                    }`}
                 >
                   For Sale
                 </button>
@@ -391,14 +390,12 @@ export default function AddVehicle({ user }) {
                 <button
                   type="button"
                   onClick={() => setInstantBooking((p) => !p)}
-                  className={`w-12 h-7 rounded-full relative transition ${
-                    instantBooking ? "bg-blue-600" : "bg-slate-300"
-                  }`}
+                  className={`w-12 h-7 rounded-full relative transition ${instantBooking ? "bg-blue-600" : "bg-slate-300"
+                    }`}
                 >
                   <span
-                    className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${
-                      instantBooking ? "left-6" : "left-1"
-                    }`}
+                    className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${instantBooking ? "left-6" : "left-1"
+                      }`}
                   />
                 </button>
               </div>
@@ -414,22 +411,20 @@ export default function AddVehicle({ user }) {
                   <button
                     type="button"
                     onClick={() => setTransmission("Automatic")}
-                    className={`flex-1 px-5 py-2 rounded-2xl text-sm font-extrabold transition ${
-                      transmission === "Automatic"
-                        ? "bg-white text-blue-600 shadow"
-                        : "text-slate-600"
-                    }`}
+                    className={`flex-1 px-5 py-2 rounded-2xl text-sm font-extrabold transition ${transmission === "Automatic"
+                      ? "bg-white text-blue-600 shadow"
+                      : "text-slate-600"
+                      }`}
                   >
                     Automatic
                   </button>
                   <button
                     type="button"
                     onClick={() => setTransmission("Manual")}
-                    className={`flex-1 px-5 py-2 rounded-2xl text-sm font-extrabold transition ${
-                      transmission === "Manual"
-                        ? "bg-white text-blue-600 shadow"
-                        : "text-slate-600"
-                    }`}
+                    className={`flex-1 px-5 py-2 rounded-2xl text-sm font-extrabold transition ${transmission === "Manual"
+                      ? "bg-white text-blue-600 shadow"
+                      : "text-slate-600"
+                      }`}
                   >
                     Manual
                   </button>
@@ -471,11 +466,10 @@ export default function AddVehicle({ user }) {
               }}
               onDragLeave={() => setDragActive(false)}
               onDrop={onDrop}
-              className={`mt-4 cursor-pointer rounded-3xl border-2 border-dashed p-10 text-center transition ${
-                dragActive
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-slate-200 bg-slate-50 hover:bg-slate-100"
-              }`}
+              className={`mt-4 cursor-pointer rounded-3xl border-2 border-dashed p-10 text-center transition ${dragActive
+                ? "border-blue-500 bg-blue-50"
+                : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                }`}
             >
               <div className="mx-auto h-12 w-12 rounded-2xl bg-white border border-slate-200 grid place-items-center">
                 <FaCloudUploadAlt className="text-blue-600 text-xl" />

@@ -10,7 +10,7 @@ const paymentSchema = new mongoose.Schema({
   vehicle: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Vehicle",
-    required: true,
+    default: null,
   },
 
   booking: {
@@ -23,6 +23,12 @@ const paymentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Purchase",
     default: null,
+  },
+
+  payment_for: {
+    type: String,
+    enum: ["booking", "purchase", "broker_subscription"],
+    default: "booking",
   },
 
   payment_amount: {

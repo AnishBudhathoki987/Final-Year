@@ -40,6 +40,8 @@ import AdminBrokers from "./Pages/AdminBrokers";
 import AdminVehicles from "./Pages/AdminVehicles";
 import AdminTransactions from "./Pages/AdminTransactions";
 import BrokerOrderHistory from "./Pages/BrokerOrderHistory";
+import BrokerSubscription from "./Pages/BrokerSubscription";
+import MyNotification from "./Pages/MyNotification";
 
 function Layout({ user, setUser }) {
   const location = useLocation();
@@ -62,7 +64,7 @@ function Layout({ user, setUser }) {
       <Routes>
         <Route path="/" element={<Home user={user} />} />
         <Route path="/login" element={<Login setUser={setUser} />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/register" element={<Register setUser={setUser} />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
 
         <Route path="/vehicles" element={<Vehicles user={user} />} />
@@ -152,7 +154,7 @@ function Layout({ user, setUser }) {
             !user ? (
               <Navigate to="/login" replace />
             ) : (
-              <PaymentSuccess />
+              <PaymentSuccess setUser={setUser} />
             )
           }
         />
@@ -167,6 +169,16 @@ function Layout({ user, setUser }) {
             )
           }
         />
+        <Route
+          path="/my-notifications"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : (
+              <MyNotification user={user} />
+            )
+          }
+        />
 
         <Route
           path="/my-payments"
@@ -174,7 +186,7 @@ function Layout({ user, setUser }) {
             !user ? (
               <Navigate to="/login" replace />
             ) : (
-              <MyPayments />
+              <MyPayments user={user} />
             )
           }
         />
@@ -247,6 +259,19 @@ function Layout({ user, setUser }) {
         <Route
           path="/broker/orders/history/:numberPlate"
           element={<BrokerOrderHistory user={user} />}
+        />
+
+        <Route
+          path="/broker-subscription"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : user.role !== "broker" ? (
+              <Navigate to="/unauthorized" replace />
+            ) : (
+              <BrokerSubscription user={user} setUser={setUser} />
+            )
+          }
         />
         <Route path="/broker/dashboard" element={<BrokerDashboard user={user} setUser={setUser} />} />
         <Route path="/broker/add-vehicle" element={<AddVehicle user={user} />} />

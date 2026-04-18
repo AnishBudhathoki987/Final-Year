@@ -14,6 +14,7 @@ import purchaseRoutes from "./Routes/PurchaseRoutes.js";
 import chatRoutes from "./Routes/ChatRoutes.js";
 import PaymentRoutes from "./Routes/PaymentRoutes.js";
 import AdminRoutes from "./Routes/AdminRoutes.js";
+import NotificationRoutes from "./Routes/NotificationRoutes.js";
 
 dotenv.config();
 
@@ -43,6 +44,7 @@ app.use("/api/purchases", purchaseRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/payments", PaymentRoutes);
 app.use("/api/admin", AdminRoutes);
+app.use("/api/notifications", NotificationRoutes);
 
 connectDB();
 

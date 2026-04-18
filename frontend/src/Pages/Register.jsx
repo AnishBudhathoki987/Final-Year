@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { FaEnvelope, FaLock, FaUser, FaEye } from "react-icons/fa";
 
-const Register = () => {
+const Register = ({ setUser }) => {
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -34,14 +34,23 @@ const Register = () => {
     }
 
     try {
-      await axios.post("/api/users/register", {
+      const res = await axios.post("/api/users/register", {
         username: formData.username,
         email: formData.email,
         password: formData.password,
         role: formData.role,
       });
 
-      navigate("/login");
+      localStorage.setItem("token", res.data.token);
+      setUser?.(res.data);
+
+      if (res.data.role === "broker") {
+        navigate("/broker-subscription");
+      } else if (res.data.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/user/dashboard");
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
     }
@@ -139,8 +148,13 @@ const Register = () => {
                 >
                   <option value="user">Register as User</option>
                   <option value="broker">Register as Broker</option>
-                  <option value="admin">Register as Admin</option>
                 </select>
+
+                {formData.role === "broker" && (
+                  <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+                    Broker registration requires a one-time subscription payment of NPR 2000 after account creation.
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <input

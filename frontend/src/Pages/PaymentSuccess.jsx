@@ -1,25 +1,33 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
-export default function PaymentSuccess() {
+export default function PaymentSuccess({ setUser }) {
   const [searchParams] = useSearchParams();
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const paymentId = searchParams.get("paymentId");
   const bookingId = searchParams.get("bookingId");
+  const type = searchParams.get("type");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadPayment = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("/api/payments/mine", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const [paymentsRes, meRes] = await Promise.all([
+          axios.get("/api/payments/mine", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get("/api/users/me", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
 
-        const found = res.data.payments.find((p) => p._id === paymentId);
+        const found = paymentsRes.data.payments.find((p) => p._id === paymentId);
         setPayment(found || null);
+        setUser?.(meRes.data);
       } catch (error) {
         console.log(error);
       } finally {
@@ -32,7 +40,9 @@ export default function PaymentSuccess() {
     } else {
       setLoading(false);
     }
-  }, [paymentId, bookingId]);
+  }, [paymentId, bookingId, type, setUser]);
+
+  const isBrokerSubscription = type === "broker-subscription";
 
   return (
     <div className="min-h-screen bg-[#f6f7fb] flex items-center justify-center px-4">
@@ -42,7 +52,9 @@ export default function PaymentSuccess() {
           Payment Successful
         </h1>
         <p className="mt-2 text-slate-500">
-          Your booking payment has been completed successfully.
+          {isBrokerSubscription
+            ? "Your broker subscription payment has been completed successfully."
+            : "Your booking payment has been completed successfully."}
         </p>
 
         {loading ? (
@@ -50,41 +62,65 @@ export default function PaymentSuccess() {
         ) : payment ? (
           <div className="mt-6 rounded-2xl bg-slate-50 p-5 text-left">
             <p>
-              <strong>Transaction ID:</strong>{" "}
-              {payment.payment_transaction_uuid}
+              <strong>Transaction ID:</strong> {payment.payment_transaction_uuid}
             </p>
             <p>
               <strong>eSewa Ref ID:</strong> {payment.esewa_ref_id || "-"}
             </p>
             <p>
-              <strong>Amount:</strong> NPR{" "}
-              {Number(payment.payment_amount).toLocaleString()}
+              <strong>Amount:</strong> NPR {Number(payment.payment_amount).toLocaleString()}
             </p>
             <p>
               <strong>Status:</strong> {payment.payment_status}
             </p>
             <p>
-              <strong>Vehicle:</strong> {payment.vehicle?.title || "-"}
+              <strong>Payment For:</strong> {payment.payment_for}
             </p>
+            {!isBrokerSubscription && (
+              <p>
+                <strong>Vehicle:</strong> {payment.vehicle?.title || "-"}
+              </p>
+            )}
           </div>
         ) : (
           <p className="mt-6 text-slate-500">Payment completed.</p>
         )}
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link
-            to="/my-bookings"
-            className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700"
-          >
-            View My Bookings
-          </Link>
+          {isBrokerSubscription ? (
+            <>
+              <button
+                onClick={() => navigate("/broker/dashboard")}
+                className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                type="button"
+              >
+                Go to Broker Dashboard
+              </button>
 
-          <Link
-            to="/my-payments"
-            className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
-          >
-            View Payment History
-          </Link>
+              <Link
+                to="/my-payments"
+                className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                View Payment History
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/my-bookings"
+                className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700"
+              >
+                View My Bookings
+              </Link>
+
+              <Link
+                to="/my-payments"
+                className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                View Payment History
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </div>

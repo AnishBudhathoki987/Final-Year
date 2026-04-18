@@ -3,9 +3,10 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
 
+
 const PAYMENTS_PER_PAGE = 4;
 
-export default function MyPayments() {
+export default function MyPayments({ user }) {
   const navigate = useNavigate();
 
   const [payments, setPayments] = useState([]);
@@ -54,7 +55,9 @@ export default function MyPayments() {
           </div>
 
           <button
-            onClick={() => navigate("/user/dashboard")}
+            onClick={() =>
+              navigate(user?.role === "broker" ? "/broker/dashboard" : "/user/dashboard")
+            }
             className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
             type="button"
           >
@@ -87,13 +90,12 @@ export default function MyPayments() {
                     </div>
 
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        p.payment_status === "success"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : p.payment_status === "failed"
+                      className={`px-3 py-1 rounded-full text-xs font-bold ${p.payment_status === "success"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : p.payment_status === "failed"
                           ? "bg-rose-100 text-rose-700"
                           : "bg-amber-100 text-amber-700"
-                      }`}
+                        }`}
                     >
                       {p.payment_status}
                     </span>
@@ -170,3 +172,4 @@ export default function MyPayments() {
     </div>
   );
 }
+

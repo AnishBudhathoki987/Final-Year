@@ -20,6 +20,7 @@ export default function BrokerDashboard({ user, setUser }) {
   useEffect(() => {
     if (!user) return navigate("/login");
     if (user.role !== "broker") return navigate("/unauthorized");
+    if (!user.hasBrokerSubscription) return navigate("/broker-subscription");
   }, [user, navigate]);
 
   const token = localStorage.getItem("token");

@@ -2,6 +2,7 @@ import express from "express";
 import Purchase from "../Models/purchase.js";
 import Vehicle from "../Models/vehicle.js";
 import { protect, authorize } from "../MiddleWare/AuthValidation.js";
+import Notification from "../Models/Notification.js";
 
 const router = express.Router();
 
@@ -48,6 +49,14 @@ router.post("/", protect, authorize("user"), async (req, res) => {
     const populated = await Purchase.findById(purchase._id)
       .populate("vehicle", "title location images price type createdBy isAvailable status")
       .populate("user", "username email");
+
+    await Notification.create({
+      user: req.user._id,
+      title: "Purchase Request Submitted",
+      message: "Your purchase request has been submitted successfully.",
+      type: "purchase",
+      purchase: purchase._id,
+    });
 
     return res.status(201).json(populated);
   } catch (err) {
@@ -124,6 +133,14 @@ router.put("/:id/broker-confirm", protect, authorize("broker"), async (req, res)
       await vehicle.save();
     }
 
+    await Notification.create({
+      user: purchase.user,
+      title: "Purchase Confirmed",
+      message: "Your purchase request has been confirmed by the broker.",
+      type: "purchase",
+      purchase: purchase._id,
+    });
+
     return res.json({ message: "Purchase confirmed and vehicle marked unavailable" });
   } catch (err) {
     console.log("Broker confirm purchase error:", err);
@@ -152,6 +169,14 @@ router.put("/:id/broker-cancel", protect, authorize("broker"), async (req, res) 
 
     purchase.status = "cancelled";
     await purchase.save();
+
+    await Notification.create({
+      user: purchase.user,
+      title: "Purchase Cancelled",
+      message: "Your purchase request has been cancelled by the broker.",
+      type: "purchase",
+      purchase: purchase._id,
+    });
 
     return res.json({ message: "Purchase cancelled" });
   } catch (err) {

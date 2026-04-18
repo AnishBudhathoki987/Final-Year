@@ -12,8 +12,6 @@ const generateToken = (id) => {
 };
 
 // REGISTER
-// user, broker, admin allowed
-// but admin can be only 2 accounts total
 router.post("/register", async (req, res) => {
   try {
     const { username, email, password, role } = req.body;
@@ -29,9 +27,9 @@ router.post("/register", async (req, res) => {
     } else if (role === "admin") {
       const adminCount = await User.countDocuments({ role: "admin" });
 
-      if (adminCount >= 2) {
+      if (adminCount >= 1) {
         return res.status(400).json({
-          message: "Only 2 admin accounts are allowed.",
+          message: "Only 1 admin account is allowed.",
         });
       }
 
@@ -55,6 +53,9 @@ router.post("/register", async (req, res) => {
       role: safeRole,
       isBlocked: false,
       isVerified: safeRole === "broker" ? false : true,
+      hasBrokerSubscription: safeRole === "broker" ? false : true,
+      brokerSubscriptionPaidAt: null,
+      brokerSubscriptionAmount: 0,
     });
 
     return res.status(201).json({
@@ -64,6 +65,9 @@ router.post("/register", async (req, res) => {
       role: user.role,
       isBlocked: user.isBlocked,
       isVerified: user.isVerified,
+      hasBrokerSubscription: user.hasBrokerSubscription,
+      brokerSubscriptionPaidAt: user.brokerSubscriptionPaidAt,
+      brokerSubscriptionAmount: user.brokerSubscriptionAmount,
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -113,6 +117,9 @@ router.post("/login", async (req, res) => {
       role: user.role,
       isBlocked: user.isBlocked,
       isVerified: user.isVerified,
+      hasBrokerSubscription: user.hasBrokerSubscription,
+      brokerSubscriptionPaidAt: user.brokerSubscriptionPaidAt,
+      brokerSubscriptionAmount: user.brokerSubscriptionAmount,
       token: generateToken(user._id),
     });
   } catch (error) {

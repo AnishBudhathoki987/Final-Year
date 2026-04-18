@@ -22,6 +22,21 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    hasBrokerSubscription: {
+      type: Boolean,
+      default: false,
+    },
+
+    brokerSubscriptionPaidAt: {
+      type: Date,
+      default: null,
+    },
+
+    brokerSubscriptionAmount: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
